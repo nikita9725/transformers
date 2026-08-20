@@ -1,4 +1,10 @@
-from transformers import AutoTokenizer, BatchEncoding, PreTrainedTokenizerBase
+from transformers import (
+    AutoModel,
+    AutoTokenizer,
+    BatchEncoding,
+    PreTrainedModel,
+    PreTrainedTokenizerBase,
+)
 
 EN_MODEL = "distilbert-base-uncased"
 RU_MODEL = "distilbert-base-multilingual-cased"
@@ -7,6 +13,11 @@ RU_MODEL = "distilbert-base-multilingual-cased"
 def get_tokenizer(model_name: str = EN_MODEL) -> PreTrainedTokenizerBase:
     """Загружает и кэширует токенизатор."""
     return AutoTokenizer.from_pretrained(model_name)
+
+
+def get_model(model_name: str = EN_MODEL) -> PreTrainedModel:
+    """Загружает и кэширует модель."""
+    return AutoModel.from_pretrained(model_name)
 
 
 def tokenize_texts(
