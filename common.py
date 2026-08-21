@@ -1,5 +1,7 @@
 import os
 
+import numpy as np
+import torch
 from huggingface_hub.utils import disable_progress_bars
 from transformers import (
     AutoModel,
@@ -54,3 +56,48 @@ def explain_tokenization(text: str, tokenizer: PreTrainedTokenizerBase) -> None:
     print(f"Токены: {tokens}")
     print(f"IDs: {ids}")
     print(f"Количество: {len(tokens)}")
+
+
+def get_embeddings(
+    texts: list[str],
+    tokenizer: PreTrainedTokenizerBase,
+    model: PreTrainedModel,
+    batch_size: int = 32,
+    max_length: int = 128,
+) -> np.ndarray:
+    """Получает CLS-эмбеддинги для списка текстов.
+
+    Args:
+        texts: список текстов для векторизации
+        tokenizer: загруженный токенизатор
+        model: загруженная модель
+        batch_size: размер батча для обработки
+        max_length: максимальная длина последовательности
+
+    Returns:
+        numpy array формы [n_texts, hidden_size] с CLS-эмбеддингами
+    """
+    all_embeddings = []
+
+    for i in range(0, len(texts), batch_size):
+        batch_texts = texts[i : i + batch_size]
+
+        # Токенизация батча
+        tokens = tokenizer(
+            batch_texts,
+            padding=True,
+            truncation=True,
+            max_length=max_length,
+            return_tensors="pt",
+        )
+
+        # Прогон через модель без градиентов
+        with torch.no_grad():
+            outputs = model(**tokens)
+
+        # Извлечение CLS-токенов (первый токен каждого текста)
+        cls_embeddings = outputs.last_hidden_state[:, 0, :]
+        all_embeddings.append(cls_embeddings.cpu().numpy())
+
+    # Объединяем все батчи в один array
+    return np.vstack(all_embeddings)
