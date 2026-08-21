@@ -1,3 +1,6 @@
+import os
+
+from huggingface_hub.utils import disable_progress_bars
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -5,6 +8,15 @@ from transformers import (
     PreTrainedModel,
     PreTrainedTokenizerBase,
 )
+from transformers.utils import logging
+
+# Настраиваем окружение до импорта transformers
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+
+# Отключаем варнинги и progress bars
+logging.set_verbosity_error()
+disable_progress_bars()
 
 EN_MODEL = "distilbert-base-uncased"
 RU_MODEL = "distilbert-base-multilingual-cased"
