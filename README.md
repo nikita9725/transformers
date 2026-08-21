@@ -25,6 +25,7 @@ uv run python -m day2.embeddings
 
 # День 3: Механизм внимания
 uv run python -m day3.attention
+uv run python -m day3.attention_weights
 ```
 
 ## Структура
@@ -42,6 +43,7 @@ day2/              # День 2: Загрузка и архитектура мо
   embeddings.py    #   Функция get_embeddings, cosine similarity
 day3/              # День 3: Механизм внимания и его визуализация
   attention.py     #   Загрузка модели с output_attentions, токенизация, форма attention
+  attention_weights.py # Извлечение attention весов: слой -> голова -> матрица [seq_len, seq_len]
 ```
 
 ## Зависимости
