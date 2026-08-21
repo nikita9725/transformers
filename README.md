@@ -18,8 +18,9 @@ uv run python -m day1.batch
 uv run python -m day1.special_tokens
 uv run python -m day1.explain
 
-# День 2: Загрузка модели
+# День 2: Загрузка модели и hidden states
 uv run python -m day2.model_loading
+uv run python -m day2.hidden_states
 ```
 
 ## Структура
@@ -33,6 +34,7 @@ day1/              # День 1: Архитектура трансформеро
   explain.py       #   Наглядная демонстрация subword-токенизации
 day2/              # День 2: Загрузка и архитектура моделей
   model_loading.py #   Загрузка моделей, просмотр архитектуры
+  hidden_states.py #   Получение hidden states, извлечение CLS-embedding
 ```
 
 ## Зависимости
