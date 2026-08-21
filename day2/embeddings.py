@@ -1,6 +1,4 @@
-import numpy as np
-
-from common import EN_MODEL, RU_MODEL, get_embeddings, get_model, get_tokenizer
+from common import EN_MODEL, RU_MODEL, get_embeddings, get_model, get_tokenizer, similarity
 
 # Примеры текстов
 texts = [
@@ -39,7 +37,5 @@ for model_name, description in examples:
     # Cosine similarity между первым и остальными текстами
     print("\nCosine similarity with text[0]:")
     for i in range(1, len(texts)):
-        similarity = np.dot(embeddings[0], embeddings[i]) / (
-            np.linalg.norm(embeddings[0]) * np.linalg.norm(embeddings[i])
-        )
-        print(f"  text[0] vs text[{i}]: {similarity:.4f}")
+        sim = similarity(texts[0], texts[i], tokenizer, model)
+        print(f"  text[0] vs text[{i}]: {sim:.4f}")

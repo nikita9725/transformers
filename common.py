@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 from huggingface_hub.utils import disable_progress_bars
+from sklearn.metrics.pairwise import cosine_similarity
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -101,3 +102,32 @@ def get_embeddings(
 
     # Объединяем все батчи в один array
     return np.vstack(all_embeddings)
+
+
+def similarity(
+    text1: str,
+    text2: str,
+    tokenizer: PreTrainedTokenizerBase,
+    model: PreTrainedModel,
+) -> float:
+    """Вычисляет косинусное сходство между двумя текстами.
+
+    Args:
+        text1: первый текст
+        text2: второй текст
+        tokenizer: загруженный токенизатор
+        model: загруженная модель
+
+    Returns:
+        Косинусное сходство от -1 до 1 (1 = идентичны)
+    """
+    # Получаем эмбеддинги для обоих текстов
+    emb = get_embeddings([text1, text2], tokenizer, model)
+
+    # Вычисляем косинусное сходство
+    # emb[0:1] — первый текст (shape: [1, 768])
+    # emb[1:2] — второй текст (shape: [1, 768])
+    # cosine_similarity возвращает матрицу [1, 1], берём [0][0]
+    sim = cosine_similarity(emb[0:1], emb[1:2])[0][0]
+
+    return float(sim)
