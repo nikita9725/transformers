@@ -27,7 +27,7 @@ uv run python -m day2.embeddings
 ## Структура
 
 ```
-common.py          # Общие утилиты: загрузка токенизатора и модели, токенизация батчей, explain, get_embeddings
+common.py          # Общие утилиты: загрузка токенизатора/модели, токенизация, get_embeddings, similarity
 day1/              # День 1: Архитектура трансформеров и токенизация
   tokenizer.py     #   Загрузка токенизатора, токенизация и декодирование
   batch.py         #   Токенизация батчей с padding/truncation
@@ -43,3 +43,4 @@ day2/              # День 2: Загрузка и архитектура мо
 
 - **transformers** — HuggingFace Transformers (токенизаторы, модели)
 - **torch** — PyTorch (тензоры, обучение моделей)
+- **scikit-learn** — cosine similarity и другие ML-утилиты
