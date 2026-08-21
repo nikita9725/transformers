@@ -30,9 +30,13 @@ def get_tokenizer(model_name: str = EN_MODEL) -> PreTrainedTokenizerBase:
     return AutoTokenizer.from_pretrained(model_name)
 
 
-def get_model(model_name: str = EN_MODEL) -> PreTrainedModel:
-    """Загружает и кэширует модель."""
-    return AutoModel.from_pretrained(model_name)
+def get_model(model_name: str = EN_MODEL, **kwargs) -> PreTrainedModel:
+    """Загружает и кэширует модель.
+
+    Дополнительные kwargs (например, output_attentions=True) пробрасываются
+    в AutoModel.from_pretrained.
+    """
+    return AutoModel.from_pretrained(model_name, **kwargs)
 
 
 def tokenize_texts(

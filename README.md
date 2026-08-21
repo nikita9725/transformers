@@ -22,6 +22,9 @@ uv run python -m day1.explain
 uv run python -m day2.model_loading
 uv run python -m day2.hidden_states
 uv run python -m day2.embeddings
+
+# День 3: Механизм внимания
+uv run python -m day3.attention
 ```
 
 ## Структура
@@ -37,6 +40,8 @@ day2/              # День 2: Загрузка и архитектура мо
   model_loading.py #   Загрузка моделей, просмотр архитектуры
   hidden_states.py #   Получение hidden states, извлечение CLS-embedding
   embeddings.py    #   Функция get_embeddings, cosine similarity
+day3/              # День 3: Механизм внимания и его визуализация
+  attention.py     #   Загрузка модели с output_attentions, токенизация, форма attention
 ```
 
 ## Зависимости
