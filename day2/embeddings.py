@@ -1,6 +1,5 @@
 from common import EN_MODEL, RU_MODEL, get_embeddings, get_model, get_tokenizer, similarity
 
-# Примеры текстов
 texts = [
     "This movie was absolutely amazing!",
     "Terrible film, waste of time.",
