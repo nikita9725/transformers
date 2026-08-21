@@ -26,6 +26,7 @@ uv run python -m day2.embeddings
 # День 3: Механизм внимания
 uv run python -m day3.attention
 uv run python -m day3.attention_weights
+uv run python -m day3.attention_vis
 ```
 
 ## Структура
@@ -44,6 +45,7 @@ day2/              # День 2: Загрузка и архитектура мо
 day3/              # День 3: Механизм внимания и его визуализация
   attention.py     #   Загрузка модели с output_attentions, токенизация, форма attention
   attention_weights.py # Извлечение attention весов: слой -> голова -> матрица [seq_len, seq_len]
+  attention_vis.py #   Heatmap-визуализация attention: выбор слоя и головы
 ```
 
 ## Зависимости
@@ -51,3 +53,5 @@ day3/              # День 3: Механизм внимания и его в�
 - **transformers** — HuggingFace Transformers (токенизаторы, модели)
 - **torch** — PyTorch (тензоры, обучение моделей)
 - **scikit-learn** — cosine similarity и другие ML-утилиты
+- **matplotlib** — графики и отображение окон
+- **seaborn** — heatmap-визуализация attention
