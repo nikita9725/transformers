@@ -33,6 +33,7 @@ uv run python -m day3.attention_keywords
 
 # День 4: Эмбеддинги для классификации
 uv run python -m day4.tokenization
+uv run python -m day4.cls_embeddings
 ```
 
 ## Структура
@@ -57,6 +58,7 @@ day3/              # День 3: Механизм внимания и его в�
   attention_keywords.py # Внимание к ключевому слову: направления + сканирование всех голов
 day4/              # День 4: Эмбеддинги для классификации
   tokenization.py  #   Токенизация батча: padding, truncation, attention mask
+  cls_embeddings.py #  Извлечение CLS-эмбеддингов батчами, проверка размерности
 ```
 
 ## Зависимости
