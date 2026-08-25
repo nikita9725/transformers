@@ -29,6 +29,7 @@ uv run python -m day3.attention_weights
 uv run python -m day3.attention_vis
 uv run python -m day3.attention_layers
 uv run python -m day3.attention_heads
+uv run python -m day3.attention_keywords
 ```
 
 ## Структура
@@ -50,6 +51,7 @@ day3/              # День 3: Механизм внимания и его в�
   attention_vis.py #   Heatmap-визуализация attention: выбор слоя и головы
   attention_layers.py # Сравнение слоёв: энтропия как мера сфокусированности, траектория слов
   attention_heads.py # Специализация голов слоя: перепись энтропий + сетка всех 12 голов
+  attention_keywords.py # Внимание к ключевому слову: направления + сканирование всех голов
 ```
 
 ## Зависимости
