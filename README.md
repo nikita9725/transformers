@@ -27,6 +27,7 @@ uv run python -m day2.embeddings
 uv run python -m day3.attention
 uv run python -m day3.attention_weights
 uv run python -m day3.attention_vis
+uv run python -m day3.attention_layers
 ```
 
 ## Структура
@@ -46,6 +47,7 @@ day3/              # День 3: Механизм внимания и его в�
   attention.py     #   Загрузка модели с output_attentions, токенизация, форма attention
   attention_weights.py # Извлечение attention весов: слой -> голова -> матрица [seq_len, seq_len]
   attention_vis.py #   Heatmap-визуализация attention: выбор слоя и головы
+  attention_layers.py # Сравнение слоёв: энтропия как мера сфокусированности, траектория слов
 ```
 
 ## Зависимости
