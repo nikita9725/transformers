@@ -181,3 +181,56 @@ def visualize_attention(
     plt.ylabel("Queries")
     plt.tight_layout()
     plt.show()
+
+
+def visualize_attention_heads(
+    tokens: BatchEncoding,
+    attention: tuple[torch.Tensor, ...],
+    tokenizer: PreTrainedTokenizerBase,
+    layer: int = 0,
+) -> None:
+    """
+    tokens: токенизированный текст
+    attention: attention weights от модели (outputs.attentions)
+    tokenizer: токенизатор для подписей осей
+    layer: номер слоя, все головы которого рисуются на одной сетке
+    """
+    # Матрицы всех голов выбранного слоя: [num_heads, seq_len, seq_len]
+    attn_layer = attention[layer][0]
+    num_heads = attn_layer.shape[0]
+
+    # Получаем токены для подписей
+    token_list = tokenizer.convert_ids_to_tokens(tokens["input_ids"][0])
+
+    # layout="constrained" корректно размещает общий colorbar и заголовок;
+    # обычный tight_layout с ними конфликтует и выдаёт UserWarning
+    fig, axes = plt.subplots(3, 4, figsize=(20, 14), layout="constrained")
+    heatmap_ax = None
+    for head, ax in enumerate(axes.flat):
+        if head >= num_heads:
+            ax.axis("off")
+            continue
+        # Общая шкала цвета [0, 1] для всех голов:
+        # яркость сопоставима между головами напрямую
+        heatmap_ax = sns.heatmap(
+            attn_layer[head].cpu().numpy(),
+            xticklabels=token_list,
+            yticklabels=token_list,
+            cmap="viridis",
+            vmin=0.0,
+            vmax=1.0,
+            cbar=False,
+            ax=ax,
+        )
+        ax.set_title(f"Head {head}")
+        ax.tick_params(labelsize=7)
+
+    # Один общий colorbar на всю сетку;
+    # при хотя бы одной голове цикл всегда рисует хотя бы один хитмап
+    assert heatmap_ax is not None
+    # sns.heatmap возвращает Axes, а для colorbar нужен сам нарисованный
+    # объект с данными (меш или изображение)
+    mappable = heatmap_ax.collections[0] if heatmap_ax.collections else heatmap_ax.images[0]
+    fig.colorbar(mappable, ax=axes.ravel().tolist(), shrink=0.6)
+    fig.suptitle(f"Attention - Layer {layer}, all heads")
+    plt.show()
