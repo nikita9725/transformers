@@ -30,6 +30,9 @@ uv run python -m day3.attention_vis
 uv run python -m day3.attention_layers
 uv run python -m day3.attention_heads
 uv run python -m day3.attention_keywords
+
+# День 4: Эмбеддинги для классификации
+uv run python -m day4.tokenization
 ```
 
 ## Структура
@@ -52,6 +55,8 @@ day3/              # День 3: Механизм внимания и его в�
   attention_layers.py # Сравнение слоёв: энтропия как мера сфокусированности, траектория слов
   attention_heads.py # Специализация голов слоя: перепись энтропий + сетка всех 12 голов
   attention_keywords.py # Внимание к ключевому слову: направления + сканирование всех голов
+day4/              # День 4: Эмбеддинги для классификации
+  tokenization.py  #   Токенизация батча: padding, truncation, attention mask
 ```
 
 ## Зависимости
