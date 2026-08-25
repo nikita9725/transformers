@@ -1,6 +1,9 @@
 import os
+from typing import cast
 
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import torch
 from huggingface_hub.utils import disable_progress_bars
 from sklearn.metrics.pairwise import cosine_similarity
@@ -30,9 +33,34 @@ def get_tokenizer(model_name: str = EN_MODEL) -> PreTrainedTokenizerBase:
     return AutoTokenizer.from_pretrained(model_name)
 
 
-def get_model(model_name: str = EN_MODEL) -> PreTrainedModel:
-    """Загружает и кэширует модель."""
-    return AutoModel.from_pretrained(model_name)
+def get_model(model_name: str = EN_MODEL, **kwargs) -> PreTrainedModel:
+    """Загружает и кэширует модель.
+
+    Дополнительные kwargs (например, output_attentions=True) пробрасываются
+    в AutoModel.from_pretrained.
+    """
+    return AutoModel.from_pretrained(model_name, **kwargs)
+
+
+def forward_with_attention(
+    text: str, model_name: str = EN_MODEL
+) -> tuple[tuple[torch.Tensor, ...], BatchEncoding, PreTrainedTokenizerBase]:
+    """Прогоняет текст через модель с output_attentions=True.
+
+    Возвращает кортеж (attention всех слоёв, токенизированный текст, токенизатор).
+    """
+    model = get_model(model_name, output_attentions=True)
+    model.eval()
+
+    tokenizer = get_tokenizer(model_name)
+    tokens = tokenizer(text, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = model(**tokens)
+
+    # Флаг output_attentions=True гарантирует, что матрицы внимания вернулись
+    assert outputs.attentions is not None
+    return outputs.attentions, tokens, tokenizer
 
 
 def tokenize_texts(
@@ -57,6 +85,13 @@ def explain_tokenization(text: str, tokenizer: PreTrainedTokenizerBase) -> None:
     print(f"Токены: {tokens}")
     print(f"IDs: {ids}")
     print(f"Количество: {len(tokens)}")
+
+
+def get_token_list(tokens: BatchEncoding, tokenizer: PreTrainedTokenizerBase) -> list[str]:
+    """Возвращает список токенов из токенизированного текста (для подписей осей)."""
+    # convert_ids_to_tokens типизирован как Union[str, List[str]]; для списка
+    # идентификаторов он всегда возвращает список, поэтому сужаем тип через cast
+    return cast(list[str], tokenizer.convert_ids_to_tokens(tokens["input_ids"][0].tolist()))
 
 
 def get_embeddings(
@@ -131,3 +166,110 @@ def similarity(
     sim = cosine_similarity(emb[0:1], emb[1:2])[0][0]
 
     return float(sim)
+
+
+def attention_entropy(attn: torch.Tensor) -> torch.Tensor:
+    """Энтропия каждой строки матрицы внимания — мера её сфокусированности.
+
+    0 — всё внимание сосредоточено в одной ячейке,
+    ln(seq_len) — равномерное распределение по всем токенам.
+    Работает и для набора матриц: энтропия считается по последнему измерению.
+    """
+    return -(attn * attn.clamp_min(1e-9).log()).sum(dim=-1)
+
+
+def visualize_attention(
+    tokens: BatchEncoding,
+    attention: tuple[torch.Tensor, ...],
+    tokenizer: PreTrainedTokenizerBase,
+    layer: int = 0,
+    head: int = 0,
+) -> None:
+    """
+    tokens: токенизированный текст
+    attention: attention weights от модели (outputs.attentions)
+    tokenizer: токенизатор для подписей осей
+    layer: номер слоя для визуализации
+    head: номер головы для визуализации
+    """
+    # Получаем attention матрицу
+    attn = attention[layer][0, head]  # [seq_len, seq_len]
+
+    # Получаем токены для подписей
+    token_list = get_token_list(tokens, tokenizer)
+
+    # Конспект картинки в терминал: топ-3 пары (query -> key) с максимальным весом
+    print(f"\nLayer {layer}, head {head} — топ-3 пары внимания:")
+    flat = attn.flatten()
+    top_indices = flat.topk(3).indices
+    for rank, idx in enumerate(top_indices, start=1):
+        i, j = divmod(int(idx), len(token_list))
+        print(f"  {rank}. {token_list[i]} -> {token_list[j]}: {attn[i, j]:.3f}")
+
+    # Рисуем heatmap
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(
+        attn.cpu().numpy(),
+        xticklabels=token_list,
+        yticklabels=token_list,
+        cmap="viridis",
+        cbar=True,
+    )
+    plt.title(f"Attention - Layer {layer}, Head {head}")
+    plt.xlabel("Keys")
+    plt.ylabel("Queries")
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_attention_heads(
+    tokens: BatchEncoding,
+    attention: tuple[torch.Tensor, ...],
+    tokenizer: PreTrainedTokenizerBase,
+    layer: int = 0,
+) -> None:
+    """
+    tokens: токенизированный текст
+    attention: attention weights от модели (outputs.attentions)
+    tokenizer: токенизатор для подписей осей
+    layer: номер слоя, все головы которого рисуются на одной сетке
+    """
+    # Матрицы всех голов выбранного слоя: [num_heads, seq_len, seq_len]
+    attn_layer = attention[layer][0]
+    num_heads = attn_layer.shape[0]
+
+    # Получаем токены для подписей
+    token_list = get_token_list(tokens, tokenizer)
+
+    # layout="constrained" корректно размещает общий colorbar и заголовок;
+    # обычный tight_layout с ними конфликтует и выдаёт UserWarning
+    fig, axes = plt.subplots(3, 4, figsize=(20, 14), layout="constrained")
+    heatmap_ax = None
+    for head, ax in enumerate(axes.flat):
+        if head >= num_heads:
+            ax.axis("off")
+            continue
+        # Общая шкала цвета [0, 1] для всех голов:
+        # яркость сопоставима между головами напрямую
+        heatmap_ax = sns.heatmap(
+            attn_layer[head].cpu().numpy(),
+            xticklabels=token_list,
+            yticklabels=token_list,
+            cmap="viridis",
+            vmin=0.0,
+            vmax=1.0,
+            cbar=False,
+            ax=ax,
+        )
+        ax.set_title(f"Head {head}")
+        ax.tick_params(labelsize=7)
+
+    # Один общий colorbar на всю сетку;
+    # при хотя бы одной голове цикл всегда рисует хотя бы один хитмап
+    assert heatmap_ax is not None
+    # sns.heatmap возвращает Axes, а для colorbar нужен сам нарисованный
+    # объект с данными (меш или изображение)
+    mappable = heatmap_ax.collections[0] if heatmap_ax.collections else heatmap_ax.images[0]
+    fig.colorbar(mappable, ax=axes.ravel().tolist(), shrink=0.6)
+    fig.suptitle(f"Attention - Layer {layer}, all heads")
+    plt.show()
