@@ -1,4 +1,5 @@
 import os
+from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -41,6 +42,27 @@ def get_model(model_name: str = EN_MODEL, **kwargs) -> PreTrainedModel:
     return AutoModel.from_pretrained(model_name, **kwargs)
 
 
+def forward_with_attention(
+    text: str, model_name: str = EN_MODEL
+) -> tuple[tuple[torch.Tensor, ...], BatchEncoding, PreTrainedTokenizerBase]:
+    """Прогоняет текст через модель с output_attentions=True.
+
+    Возвращает кортеж (attention всех слоёв, токенизированный текст, токенизатор).
+    """
+    model = get_model(model_name, output_attentions=True)
+    model.eval()
+
+    tokenizer = get_tokenizer(model_name)
+    tokens = tokenizer(text, return_tensors="pt")
+
+    with torch.no_grad():
+        outputs = model(**tokens)
+
+    # Флаг output_attentions=True гарантирует, что матрицы внимания вернулись
+    assert outputs.attentions is not None
+    return outputs.attentions, tokens, tokenizer
+
+
 def tokenize_texts(
     texts: list[str], tokenizer: PreTrainedTokenizerBase, max_length: int = 128
 ) -> BatchEncoding:
@@ -63,6 +85,13 @@ def explain_tokenization(text: str, tokenizer: PreTrainedTokenizerBase) -> None:
     print(f"Токены: {tokens}")
     print(f"IDs: {ids}")
     print(f"Количество: {len(tokens)}")
+
+
+def get_token_list(tokens: BatchEncoding, tokenizer: PreTrainedTokenizerBase) -> list[str]:
+    """Возвращает список токенов из токенизированного текста (для подписей осей)."""
+    # convert_ids_to_tokens типизирован как Union[str, List[str]]; для списка
+    # идентификаторов он всегда возвращает список, поэтому сужаем тип через cast
+    return cast(list[str], tokenizer.convert_ids_to_tokens(tokens["input_ids"][0].tolist()))
 
 
 def get_embeddings(
@@ -139,6 +168,16 @@ def similarity(
     return float(sim)
 
 
+def attention_entropy(attn: torch.Tensor) -> torch.Tensor:
+    """Энтропия каждой строки матрицы внимания — мера её сфокусированности.
+
+    0 — всё внимание сосредоточено в одной ячейке,
+    ln(seq_len) — равномерное распределение по всем токенам.
+    Работает и для набора матриц: энтропия считается по последнему измерению.
+    """
+    return -(attn * attn.clamp_min(1e-9).log()).sum(dim=-1)
+
+
 def visualize_attention(
     tokens: BatchEncoding,
     attention: tuple[torch.Tensor, ...],
@@ -157,7 +196,7 @@ def visualize_attention(
     attn = attention[layer][0, head]  # [seq_len, seq_len]
 
     # Получаем токены для подписей
-    token_list = tokenizer.convert_ids_to_tokens(tokens["input_ids"][0])
+    token_list = get_token_list(tokens, tokenizer)
 
     # Конспект картинки в терминал: топ-3 пары (query -> key) с максимальным весом
     print(f"\nLayer {layer}, head {head} — топ-3 пары внимания:")
@@ -200,7 +239,7 @@ def visualize_attention_heads(
     num_heads = attn_layer.shape[0]
 
     # Получаем токены для подписей
-    token_list = tokenizer.convert_ids_to_tokens(tokens["input_ids"][0])
+    token_list = get_token_list(tokens, tokenizer)
 
     # layout="constrained" корректно размещает общий colorbar и заголовок;
     # обычный tight_layout с ними конфликтует и выдаёт UserWarning

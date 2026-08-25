@@ -1,9 +1,13 @@
 import math
-from typing import cast
 
 import torch
 
-from common import EN_MODEL, get_model, get_tokenizer, visualize_attention
+from common import (
+    attention_entropy,
+    forward_with_attention,
+    get_token_list,
+    visualize_attention,
+)
 
 # Задача 4: анализ attention для разных слоёв
 # Гипотеза: на последних слоях внимание более сфокусировано.
@@ -25,7 +29,7 @@ def print_focus_table(attn_all: torch.Tensor) -> None:
     max_entropy = math.log(seq_len)
 
     # [num_layers, num_heads, seq_len] — энтропия каждой строки каждой головы
-    entropy = -(attn_all * attn_all.clamp_min(1e-9).log()).sum(dim=-1)
+    entropy = attention_entropy(attn_all)
 
     print("\nФокус внимания по слоям (среднее по головам и строкам):")
     print(f"{'слой':>4} | {'энтропия':>8} | {'% от макс':>8} | {'макс. вес строки':>16}")
@@ -57,21 +61,12 @@ def print_token_journey(
         print(f"  слой {layer}: -> {token_list[j]} ({float(row[j]):.3f})")
 
 
-model = get_model(EN_MODEL, output_attentions=True)
-model.eval()
-
-tokenizer = get_tokenizer(EN_MODEL)
-tokens = tokenizer(TEXT, return_tensors="pt")
-# convert_ids_to_tokens типизирован как Union[str, List[str]]; для списка
-# идентификаторов он всегда возвращает список, поэтому сужаем тип через cast
-token_list = cast(list[str], tokenizer.convert_ids_to_tokens(tokens["input_ids"][0].tolist()))
-
-with torch.no_grad():
-    outputs = model(**tokens)
+attentions, tokens, tokenizer = forward_with_attention(TEXT)
+token_list = get_token_list(tokens, tokenizer)
 
 # Все матрицы внимания в одном тензоре: [слои, головы, seq_len, seq_len]
 # squeeze(1) убирает батч-измерение — у нас один текст в батче
-attn_all = torch.stack(outputs.attentions).squeeze(1)
+attn_all = torch.stack(attentions).squeeze(1)
 
 print(f"Text: {TEXT}")
 
@@ -85,4 +80,4 @@ print_token_journey("movie", token_list, attn_all)
 # Часть C: три окна из задания — первый слой, средний, последний
 print("\nОткрываю окна: слой 0, слой 3, слой 5 (голова 0)")
 for layer in (0, 3, 5):
-    visualize_attention(tokens, outputs.attentions, tokenizer, layer=layer, head=0)
+    visualize_attention(tokens, attentions, tokenizer, layer=layer, head=0)

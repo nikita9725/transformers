@@ -1,8 +1,6 @@
-from typing import cast
-
 import torch
 
-from common import EN_MODEL, get_model, get_tokenizer, visualize_attention
+from common import forward_with_attention, get_token_list, visualize_attention
 
 # Задача 6: анализ внимания к ключевым словам
 # Ищем, куда направлено внимание сентиментного слова "terrible" и кто смотрит на него.
@@ -89,14 +87,8 @@ def scan_heads_for_keyword(
     return sent, received
 
 
-model = get_model(EN_MODEL, output_attentions=True)
-model.eval()
-
-tokenizer = get_tokenizer(EN_MODEL)
-tokens = tokenizer(TEXT, return_tensors="pt")
-# convert_ids_to_tokens типизирован как Union[str, List[str]]; для списка
-# идентификаторов он всегда возвращает список, поэтому сужаем тип через cast
-token_list = cast(list[str], tokenizer.convert_ids_to_tokens(tokens["input_ids"][0].tolist()))
+attentions, tokens, tokenizer = forward_with_attention(TEXT)
+token_list = get_token_list(tokens, tokenizer)
 
 print(f"Text: {TEXT}")
 print(f"Tokens: {token_list}")
@@ -107,19 +99,14 @@ if not keyword_indices:
 found_tokens = [token_list[i] for i in keyword_indices]
 print(f"Позиции '{KEYWORD}': {found_tokens} (индексы {keyword_indices})")
 
-with torch.no_grad():
-    outputs = model(**tokens)
-
 # Часть A: окно из задания — слой 5, голова 0
-visualize_attention(tokens, outputs.attentions, tokenizer, layer=5, head=0)
+visualize_attention(tokens, attentions, tokenizer, layer=5, head=0)
 
 # Часть B: направления внимания для слоя 5, головы 0
-print_top_directions(
-    outputs.attentions[5][0, 0], KEYWORD, keyword_indices, token_list, layer=5, head=0
-)
+print_top_directions(attentions[5][0, 0], KEYWORD, keyword_indices, token_list, layer=5, head=0)
 
 # Часть C: сканирование всех 72 голов
-attn_all = torch.stack(outputs.attentions).squeeze(1)
+attn_all = torch.stack(attentions).squeeze(1)
 sent, received = scan_heads_for_keyword(attn_all, keyword_indices, token_list)
 
 print(f"\nТоп-3 головы: куда сильнее всего смотрит '{KEYWORD}' (только содержательные токены):")
@@ -135,6 +122,4 @@ champion_layer = sent[0][1]
 champion_head = sent[0][2]
 if (champion_layer, champion_head) != (5, 0):
     print(f"\nГолова-чемпион: слой {champion_layer}, голова {champion_head}")
-    visualize_attention(
-        tokens, outputs.attentions, tokenizer, layer=champion_layer, head=champion_head
-    )
+    visualize_attention(tokens, attentions, tokenizer, layer=champion_layer, head=champion_head)

@@ -1,6 +1,4 @@
-import torch
-
-from common import EN_MODEL, RU_MODEL, get_model, get_tokenizer
+from common import EN_MODEL, RU_MODEL, forward_with_attention
 
 # Задача 2: получение attention весов
 # Достаём из outputs.attentions конкретную матрицу:
@@ -20,23 +18,16 @@ for model_name, description, text in examples:
     print(f"{description}")
     print(f"{'=' * 60}")
 
-    model = get_model(model_name, output_attentions=True)
-    model.eval()
-
-    tokenizer = get_tokenizer(model_name)
-    tokens = tokenizer(text, return_tensors="pt")
-
-    # 1. Прогоняем через модель без градиентов
-    with torch.no_grad():
-        outputs = model(**tokens)
+    # 1. Прогоняем текст через модель с output_attentions=True
+    attentions, tokens, tokenizer = forward_with_attention(text, model_name)
 
     # 2. Изучаем attention
-    print(f"\nType: {type(outputs.attentions)}")
-    print(f"Количество слоёв: {len(outputs.attentions)}")
-    print(f"Форма attention для слоя 0: {outputs.attentions[0].shape}")
+    print(f"\nType: {type(attentions)}")
+    print(f"Количество слоёв: {len(attentions)}")
+    print(f"Форма attention для слоя 0: {attentions[0].shape}")
 
     # 3. Извлекаем attention из первого слоя
-    attention = outputs.attentions[0]  # первый слой
+    attention = attentions[0]  # первый слой
     print(f"\nAttention shape: {attention.shape}")
 
     # Для первого батча, первой головы
