@@ -3,10 +3,14 @@ from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import torch
+from datasets import Dataset as HFDataset
+from datasets import concatenate_datasets, load_dataset
 from huggingface_hub.utils import disable_progress_bars
 from sklearn.metrics.pairwise import cosine_similarity
+from torch.utils.data import Dataset
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -15,6 +19,8 @@ from transformers import (
     PreTrainedTokenizerBase,
 )
 from transformers.utils import logging
+
+from typings import Attentions, ModelInput
 
 # Настраиваем окружение до импорта transformers
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
@@ -44,7 +50,7 @@ def get_model(model_name: str = EN_MODEL, **kwargs) -> PreTrainedModel:
 
 def forward_with_attention(
     text: str, model_name: str = EN_MODEL
-) -> tuple[tuple[torch.Tensor, ...], BatchEncoding, PreTrainedTokenizerBase]:
+) -> tuple[Attentions, BatchEncoding, PreTrainedTokenizerBase]:
     """Прогоняет текст через модель с output_attentions=True.
 
     Возвращает кортеж (attention всех слоёв, токенизированный текст, токенизатор).
@@ -92,6 +98,57 @@ def get_token_list(tokens: BatchEncoding, tokenizer: PreTrainedTokenizerBase) ->
     # convert_ids_to_tokens типизирован как Union[str, List[str]]; для списка
     # идентификаторов он всегда возвращает список, поэтому сужаем тип через cast
     return cast(list[str], tokenizer.convert_ids_to_tokens(tokens["input_ids"][0].tolist()))
+
+
+def load_sst2_sample(n_per_class: int = 1000) -> pd.DataFrame:
+    """Загружает сбалансированный срез SST2 как DataFrame с колонками
+    text и label (0 = negative, 1 = positive)."""
+    ds: HFDataset = load_dataset("stanfordnlp/sst2", split="train")
+    positive = ds.filter(lambda row: row["label"] == 1).shuffle(seed=42).select(range(n_per_class))
+    negative = ds.filter(lambda row: row["label"] == 0).shuffle(seed=42).select(range(n_per_class))
+    df = concatenate_datasets([positive, negative]).shuffle(seed=42).to_pandas()
+    return df.rename(columns={"sentence": "text"})[["text", "label"]]
+
+
+class SentimentDataset(Dataset):
+    """Датасет для классификации текстов: по одному примеру возвращает
+    input_ids, attention_mask и labels, готовые для модели."""
+
+    def __init__(
+        self,
+        texts: list[str],
+        labels: list[int],
+        tokenizer: PreTrainedTokenizerBase,
+        max_length: int = 128,
+    ) -> None:
+        self.texts = texts
+        self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self) -> int:
+        return len(self.texts)
+
+    def __getitem__(self, idx: int) -> ModelInput:
+        text = self.texts[idx]
+        label = self.labels[idx]
+
+        # padding="max_length": каждый пример возвращается одинаковой длины,
+        # иначе DataLoader не сможет собрать примеры в батч
+        encoding = self.tokenizer(
+            text,
+            padding="max_length",
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+
+        return {
+            "input_ids": encoding["input_ids"].flatten(),
+            "attention_mask": encoding["attention_mask"].flatten(),
+            # CrossEntropyLoss ожидает индексы классов в long
+            "labels": torch.tensor(label, dtype=torch.long),
+        }
 
 
 def get_embeddings(
@@ -180,7 +237,7 @@ def attention_entropy(attn: torch.Tensor) -> torch.Tensor:
 
 def visualize_attention(
     tokens: BatchEncoding,
-    attention: tuple[torch.Tensor, ...],
+    attention: Attentions,
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
     head: int = 0,
@@ -224,7 +281,7 @@ def visualize_attention(
 
 def visualize_attention_heads(
     tokens: BatchEncoding,
-    attention: tuple[torch.Tensor, ...],
+    attention: Attentions,
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
 ) -> None:

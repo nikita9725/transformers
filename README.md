@@ -35,12 +35,16 @@ uv run python -m day3.attention_keywords
 uv run python -m day4.tokenization
 uv run python -m day4.cls_embeddings
 uv run python -m day4.logistic_regression
+
+# День 5: Файн-тюнинг трансформера
+uv run python -m day5.dataset
 ```
 
 ## Структура
 
 ```
-common.py          # Общие утилиты: загрузка токенизатора/модели, токенизация, get_embeddings, similarity
+common.py          # Общие утилиты: токенизатор/модель, эмбеддинги, датасет SST2, SentimentDataset
+typings.py         # Общие типы: ModelInput, Attentions, HeadLink
 day1/              # День 1: Архитектура трансформеров и токенизация
   tokenizer.py     #   Загрузка токенизатора, токенизация и декодирование
   batch.py         #   Токенизация батчей с padding/truncation
@@ -62,6 +66,8 @@ day4/              # День 4: Эмбеддинги для классифик�
   cls_embeddings.py #  Извлечение CLS-эмбеддингов батчами, проверка размерности
   logistic_regression.py # Бейзлайн на SST2: логрегрессия на CLS-эмбеддингах
   baseline_results.txt # Отчёт и macro F1 бейзлайна (создаётся скриптом)
+day5/              # День 5: Файн-тюнинг трансформера
+  dataset.py       #   SentimentDataset: проверка элемента датасета на примерах SST2
 ```
 
 ## Зависимости
