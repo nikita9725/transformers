@@ -1,0 +1,14 @@
+Baseline: Logistic Regression на CLS-эмбеддингах (SST2)
+
+Train: 1600, test: 400
+
+              precision    recall  f1-score   support
+
+    negative       0.83      0.83      0.83       200
+    positive       0.83      0.83      0.83       200
+
+    accuracy                           0.83       400
+   macro avg       0.83      0.83      0.83       400
+weighted avg       0.83      0.83      0.83       400
+
+Macro F1: 0.8350

@@ -30,6 +30,11 @@ uv run python -m day3.attention_vis
 uv run python -m day3.attention_layers
 uv run python -m day3.attention_heads
 uv run python -m day3.attention_keywords
+
+# День 4: Эмбеддинги для классификации
+uv run python -m day4.tokenization
+uv run python -m day4.cls_embeddings
+uv run python -m day4.logistic_regression
 ```
 
 ## Структура
@@ -52,12 +57,19 @@ day3/              # День 3: Механизм внимания и его в�
   attention_layers.py # Сравнение слоёв: энтропия как мера сфокусированности, траектория слов
   attention_heads.py # Специализация голов слоя: перепись энтропий + сетка всех 12 голов
   attention_keywords.py # Внимание к ключевому слову: направления + сканирование всех голов
+day4/              # День 4: Эмбеддинги для классификации
+  tokenization.py  #   Токенизация батча: padding, truncation, attention mask
+  cls_embeddings.py #  Извлечение CLS-эмбеддингов батчами, проверка размерности
+  logistic_regression.py # Бейзлайн на SST2: логрегрессия на CLS-эмбеддингах
+  baseline_results.txt # Отчёт и macro F1 бейзлайна (создаётся скриптом)
 ```
 
 ## Зависимости
 
 - **transformers** — HuggingFace Transformers (токенизаторы, модели)
 - **torch** — PyTorch (тензоры, обучение моделей)
-- **scikit-learn** — cosine similarity и другие ML-утилиты
+- **scikit-learn** — cosine similarity, классификация и метрики
 - **matplotlib** — графики и отображение окон
 - **seaborn** — heatmap-визуализация attention
+- **datasets** — загрузка датасетов с HF Hub (SST2)
+- **pandas** — DataFrame для работы с датасетами
