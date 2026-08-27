@@ -1,3 +1,5 @@
+import numpy as np
+
 from common import EN_MODEL, get_embeddings, get_model, get_tokenizer
 
 # День 4, задача 2: извлечение CLS-эмбеддингов
@@ -40,3 +42,26 @@ print(f"  колонок: {hidden_size} (hidden_size модели: {model.config
 assert n_texts == len(texts), "на каждый текст должен быть свой вектор"
 assert hidden_size == model.config.hidden_size, "длина вектора = скрытый размер модели"
 print("  проверка пройдена")
+
+# Часть 2: влияет ли разбиение на батчи на результат?
+# Короткие тексты в батче дополняются [PAD], и нужно убедиться,
+# что паддинг не меняет эмбеддинг (маска должна его выключать).
+# Сравниваем два крайних случая:
+# - каждый текст отдельно (паддинга нет вообще);
+# - все тексты одним батчем (паддинг максимальный).
+embeddings_single = get_embeddings(texts, tokenizer, model, batch_size=1)
+embeddings_full = get_embeddings(texts, tokenizer, model, batch_size=len(texts))
+
+max_diff = float(np.abs(embeddings_single - embeddings_full).max())
+print("\nВлияет ли разбиение на батчи на результат?")
+print(f"  батч=1:  {embeddings_single.shape}, без паддинга")
+print(f"  батч={len(texts)}:  {embeddings_full.shape}, с паддингом")
+print(f"  макс. |разница| между ними: {max_diff:.2e}")
+# Дефолтный atol=1e-8 в np.allclose слишком строг для float32: порядок
+# сложения в матричных умножениях зависит от формы батча, и это даёт
+# шум уровня ~1e-6. Если бы паддинг реально влиял на CLS, разница была
+# бы на порядки больше (~1e-1).
+strict = np.allclose(embeddings_single, embeddings_full)
+float32_ok = np.allclose(embeddings_single, embeddings_full, atol=1e-4)
+print(f"  np.allclose (atol=1e-8, строгий): {strict}")
+print(f"  np.allclose (atol=1e-4, допуск для float32): {float32_ok}")
