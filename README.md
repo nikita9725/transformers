@@ -44,6 +44,7 @@ uv run python -m day5.training_setup
 uv run python -m day5.train_epoch
 uv run python -m day5.evaluate
 uv run python -m day5.train_model
+uv run python -m day5.save_model
 ```
 
 ## Структура
@@ -51,6 +52,8 @@ uv run python -m day5.train_model
 ```
 common.py          # Общие утилиты: токенизатор/модель, эмбеддинги, датасет SST2, SentimentDataset
 typings.py         # Общие типы: ModelInput, Attentions, HeadLink
+fine_tuned_results.txt # Финальные метрики дообученной модели (создаётся day5/save_model.py)
+models/            # Все сохранённые модели (в .gitignore)
 day1/              # День 1: Архитектура трансформеров и токенизация
   tokenizer.py     #   Загрузка токенизатора, токенизация и декодирование
   batch.py         #   Токенизация батчей с padding/truncation
@@ -80,6 +83,7 @@ day5/              # День 5: Файн-тюнинг трансформера
   train_epoch.py   #   Цикл обучения одной эпохи + валидация (лосс, accuracy, macro F1)
   evaluate.py      #   Функция оценки: accuracy и macro F1 до и после обучения
   train_model.py   #   Полное обучение: 3 эпохи с оценкой после каждой
+  save_model.py    #   Обучение + сохранение чекпоинта в models/; метрики — в корень
 ```
 
 ## Зависимости
