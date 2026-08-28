@@ -1,20 +1,32 @@
+import csv
 import os
+from pathlib import Path
 from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import torch
+from datasets import Dataset as HFDataset
+from datasets import concatenate_datasets, load_dataset
 from huggingface_hub.utils import disable_progress_bars
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.model_selection import train_test_split
+from torch.optim import AdamW, Optimizer
+from torch.utils.data import DataLoader, Dataset
 from transformers import (
     AutoModel,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
     BatchEncoding,
     PreTrainedModel,
     PreTrainedTokenizerBase,
 )
 from transformers.utils import logging
+
+from typings import Attentions, ClassifierBundle, LoadersBundle, ModelInput, TextSplit
 
 # Настраиваем окружение до импорта transformers
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
@@ -44,7 +56,7 @@ def get_model(model_name: str = EN_MODEL, **kwargs) -> PreTrainedModel:
 
 def forward_with_attention(
     text: str, model_name: str = EN_MODEL
-) -> tuple[tuple[torch.Tensor, ...], BatchEncoding, PreTrainedTokenizerBase]:
+) -> tuple[Attentions, BatchEncoding, PreTrainedTokenizerBase]:
     """Прогоняет текст через модель с output_attentions=True.
 
     Возвращает кортеж (attention всех слоёв, токенизированный текст, токенизатор).
@@ -92,6 +104,214 @@ def get_token_list(tokens: BatchEncoding, tokenizer: PreTrainedTokenizerBase) ->
     # convert_ids_to_tokens типизирован как Union[str, List[str]]; для списка
     # идентификаторов он всегда возвращает список, поэтому сужаем тип через cast
     return cast(list[str], tokenizer.convert_ids_to_tokens(tokens["input_ids"][0].tolist()))
+
+
+def load_sst2_sample(n_per_class: int = 1000) -> pd.DataFrame:
+    """Загружает сбалансированный срез SST2 как DataFrame с колонками
+    text и label (0 = negative, 1 = positive)."""
+    ds: HFDataset = load_dataset("stanfordnlp/sst2", split="train")
+    positive = ds.filter(lambda row: row["label"] == 1).shuffle(seed=42).select(range(n_per_class))
+    negative = ds.filter(lambda row: row["label"] == 0).shuffle(seed=42).select(range(n_per_class))
+    df = concatenate_datasets([positive, negative]).shuffle(seed=42).to_pandas()
+    return df.rename(columns={"sentence": "text"})[["text", "label"]]
+
+
+SENTIMENT_DATA_DIR = Path(__file__).parent / "datasets" / "sentiment labelled sentences"
+SENTIMENT_FILES = ("amazon_cells_labelled.txt", "imdb_labelled.txt", "yelp_labelled.txt")
+
+
+def load_sentiment_dataset() -> pd.DataFrame:
+    """Загружает локальный датасет 'Sentiment Labelled Sentences' (UCI):
+    три TSV-файла (amazon, imdb, yelp) по 1000 предложений с метками 0/1.
+
+    Возвращает DataFrame с колонками text, label и source (сайт-источник).
+    """
+    frames = []
+    for name in SENTIMENT_FILES:
+        path = SENTIMENT_DATA_DIR / name
+        # quoting=QUOTE_NONE: в imdb-части встречаются кавычки, и без этого
+        # pandas склеивает строки между собой (теряется ~25% датасета)
+        frame = pd.read_csv(
+            path, sep="\t", header=None, names=["text", "label"], quoting=csv.QUOTE_NONE
+        )
+        # Убираем пустые строки (файлы заканчиваются пустой последней строкой)
+        frame = frame.dropna(subset=["text"])
+        # Запоминаем источник предложений — пригодится для анализа по сайтам
+        frame["source"] = path.stem
+        frames.append(frame)
+    return pd.concat(frames, ignore_index=True)[["text", "label", "source"]]
+
+
+class SentimentDataset(Dataset):
+    """Датасет для классификации текстов: по одному примеру возвращает
+    input_ids, attention_mask и labels, готовые для модели."""
+
+    def __init__(
+        self,
+        texts: list[str],
+        labels: list[int],
+        tokenizer: PreTrainedTokenizerBase,
+        max_length: int = 128,
+    ) -> None:
+        self.texts = texts
+        self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self) -> int:
+        return len(self.texts)
+
+    def __getitem__(self, idx: int) -> ModelInput:
+        text = self.texts[idx]
+        label = self.labels[idx]
+
+        # padding="max_length": каждый пример возвращается одинаковой длины,
+        # иначе DataLoader не сможет собрать примеры в батч
+        encoding = self.tokenizer(
+            text,
+            padding="max_length",
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+
+        return {
+            "input_ids": encoding["input_ids"].flatten(),
+            "attention_mask": encoding["attention_mask"].flatten(),
+            # CrossEntropyLoss ожидает индексы классов в long
+            "labels": torch.tensor(label, dtype=torch.long),
+        }
+
+
+def train_epoch(
+    model: PreTrainedModel,
+    dataloader: DataLoader,
+    optimizer: Optimizer,
+    device: torch.device,
+) -> float:
+    """Одна эпоха обучения; возвращает средний лосс по батчам."""
+    model.train()
+    total_loss = 0
+
+    for batch in dataloader:
+        optimizer.zero_grad()
+
+        input_ids = batch["input_ids"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
+        labels = batch["labels"].to(device)
+
+        outputs = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            labels=labels,
+        )
+
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item()
+
+    return total_loss / len(dataloader)
+
+
+def evaluate(
+    model: PreTrainedModel,
+    dataloader: DataLoader,
+    device: torch.device,
+) -> tuple[float, float]:
+    """Оценка классификации: accuracy и макро-F1 (без лосса и градиентов)."""
+    model.eval()
+    predictions: list[int] = []
+    true_labels: list[int] = []
+
+    with torch.no_grad():
+        for batch in dataloader:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["labels"].to(device)
+
+            # Без labels модель не считает лосс — только логиты
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+
+            preds = torch.argmax(outputs.logits, dim=1)
+
+            predictions.extend(preds.cpu().tolist())
+            true_labels.extend(labels.cpu().tolist())
+
+    accuracy = accuracy_score(true_labels, predictions)
+    macro_f1 = f1_score(true_labels, predictions, average="macro")
+    return float(accuracy), float(macro_f1)
+
+
+def load_sentiment_split() -> TextSplit:
+    """Тексты и метки локального датасета, разбитые 80/20.
+
+    Стратифицированный сплит с фиксированным сидом: баланс классов
+    сохраняется в обеих частях, разбиение воспроизводимо.
+    """
+    df = load_sentiment_dataset()
+    texts = df["text"].tolist()
+    labels = [int(label) for label in df["label"]]
+    train_texts, val_texts, train_labels, val_labels = train_test_split(
+        texts, labels, test_size=0.2, random_state=42, stratify=labels
+    )
+    return train_texts, val_texts, train_labels, val_labels
+
+
+def build_sentiment_loaders(max_length: int = 64, batch_size: int = 16) -> LoadersBundle:
+    """DataLoader'ы для обучения сентимент-модели и число классов.
+
+    Трейн-лоадер с shuffle, валидационный — детерминированный.
+    """
+    train_texts, val_texts, train_labels, val_labels = load_sentiment_split()
+
+    tokenizer = get_tokenizer(EN_MODEL)
+    train_dataset = SentimentDataset(train_texts, train_labels, tokenizer, max_length=max_length)
+    val_dataset = SentimentDataset(val_texts, val_labels, tokenizer, max_length=max_length)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    num_labels = len(set(train_labels) | set(val_labels))
+    return train_loader, val_loader, num_labels
+
+
+def build_classifier(num_labels: int, lr: float = 2e-5) -> ClassifierBundle:
+    """Модель с классификационной головой, оптимизатор и устройство.
+
+    Тело берётся из предобученного чекпоинта, голова создаётся со
+    случайными весами — её и дообучает файн-тюнинг.
+    """
+    model = AutoModelForSequenceClassification.from_pretrained(EN_MODEL, num_labels=num_labels)
+    optimizer = AdamW(model.parameters(), lr=lr)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    return model, optimizer, device
+
+
+def train_loop(
+    model: PreTrainedModel,
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+    optimizer: Optimizer,
+    device: torch.device,
+    num_epochs: int,
+) -> tuple[float, float]:
+    """Цикл обучения: после каждой эпохи печатает метрики на валидации.
+
+    Возвращает финальные (accuracy, macro F1).
+    """
+    val_acc, val_f1 = 0.0, 0.0
+    for epoch in range(num_epochs):
+        train_loss = train_epoch(model, train_loader, optimizer, device)
+        val_acc, val_f1 = evaluate(model, val_loader, device)
+
+        print(f"Epoch {epoch + 1}/{num_epochs}")
+        print(f"Train Loss: {train_loss:.4f}")
+        print(f"Val Accuracy: {val_acc:.4f}")
+        print(f"Val F1: {val_f1:.4f}")
+        print("-" * 50)
+    return val_acc, val_f1
 
 
 def get_embeddings(
@@ -180,7 +400,7 @@ def attention_entropy(attn: torch.Tensor) -> torch.Tensor:
 
 def visualize_attention(
     tokens: BatchEncoding,
-    attention: tuple[torch.Tensor, ...],
+    attention: Attentions,
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
     head: int = 0,
@@ -224,7 +444,7 @@ def visualize_attention(
 
 def visualize_attention_heads(
     tokens: BatchEncoding,
-    attention: tuple[torch.Tensor, ...],
+    attention: Attentions,
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
 ) -> None:

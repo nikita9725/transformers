@@ -1,6 +1,7 @@
 import torch
 
 from common import forward_with_attention, get_token_list, visualize_attention
+from typings import HeadLink
 
 # Задача 6: анализ внимания к ключевым словам
 # Ищем, куда направлено внимание сентиментного слова "terrible" и кто смотрит на него.
@@ -55,7 +56,7 @@ def scan_heads_for_keyword(
     attn_all: torch.Tensor,
     keyword_indices: list[int],
     token_list: list[str],
-) -> tuple[list[tuple[float, int, int, str]], list[tuple[float, int, int, str]]]:
+) -> tuple[list[HeadLink], list[HeadLink]]:
     """Сканирует все головы: куда смотрит ключевое слово и кто смотрит на него.
 
     Учитываются только содержательные токены: [CLS], [SEP] и само слово исключены.
@@ -68,8 +69,8 @@ def scan_heads_for_keyword(
     key_positions = [j for j in range(seq_len) if j not in forbidden]
     query_positions = [i for i in range(seq_len) if i not in forbidden]
 
-    sent: list[tuple[float, int, int, str]] = []
-    received: list[tuple[float, int, int, str]] = []
+    sent: list[HeadLink] = []
+    received: list[HeadLink] = []
     for layer in range(attn_all.shape[0]):
         for head in range(attn_all.shape[1]):
             matrix = attn_all[layer, head]

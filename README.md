@@ -35,12 +35,25 @@ uv run python -m day3.attention_keywords
 uv run python -m day4.tokenization
 uv run python -m day4.cls_embeddings
 uv run python -m day4.logistic_regression
+
+# День 5: Файн-тюнинг трансформера
+uv run python -m day5.dataset
+uv run python -m day5.prepare_data
+uv run python -m day5.model_loading
+uv run python -m day5.training_setup
+uv run python -m day5.train_epoch
+uv run python -m day5.evaluate
+uv run python -m day5.train_model
+uv run python -m day5.save_model
 ```
 
 ## Структура
 
 ```
-common.py          # Общие утилиты: загрузка токенизатора/модели, токенизация, get_embeddings, similarity
+common.py          # Общие утилиты: токенизатор/модель, эмбеддинги, датасеты, хелперы обучения
+typings.py         # Общие типы: ModelInput, Attentions, HeadLink, TextSplit, LoadersBundle, ClassifierBundle
+fine_tuned_results.txt # Финальные метрики дообученной модели (создаётся day5/save_model.py)
+models/            # Все сохранённые модели (в .gitignore)
 day1/              # День 1: Архитектура трансформеров и токенизация
   tokenizer.py     #   Загрузка токенизатора, токенизация и декодирование
   batch.py         #   Токенизация батчей с padding/truncation
@@ -62,6 +75,15 @@ day4/              # День 4: Эмбеддинги для классифик�
   cls_embeddings.py #  Извлечение CLS-эмбеддингов батчами, проверка размерности
   logistic_regression.py # Бейзлайн на SST2: логрегрессия на CLS-эмбеддингах
   baseline_results.txt # Отчёт и macro F1 бейзлайна (создаётся скриптом)
+day5/              # День 5: Файн-тюнинг трансформера
+  dataset.py       #   SentimentDataset: проверка элемента датасета на примерах из датасета
+  prepare_data.py  #   Загрузка локального датасета, сплит 80/20, train/val датасеты
+  model_loading.py #   Модель для классификации + DataLoaders: параметры, батчи, формы
+  training_setup.py #  Настройка обучения: оптимизатор, устройство, лосс случайной головы
+  train_epoch.py   #   Цикл обучения одной эпохи + валидация (лосс, accuracy, macro F1)
+  evaluate.py      #   Функция оценки: accuracy и macro F1 до и после обучения
+  train_model.py   #   Полное обучение: 3 эпохи с оценкой после каждой
+  save_model.py    #   Обучение + сохранение чекпоинта в models/; метрики — в корень
 ```
 
 ## Зависимости

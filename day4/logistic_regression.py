@@ -1,12 +1,10 @@
 from pathlib import Path
 
-import pandas as pd
-from datasets import Dataset, concatenate_datasets, load_dataset
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import train_test_split
 
-from common import EN_MODEL, get_embeddings, get_model, get_tokenizer
+from common import EN_MODEL, get_embeddings, get_model, get_tokenizer, load_sst2_sample
 
 # День 4, задача 3: Logistic Regression на CLS-эмбеддингах
 # Датасет: SST2 (Stanford Sentiment Treebank) — рецензии с бинарной
@@ -19,18 +17,8 @@ N_PER_CLASS = 1000
 RESULTS_PATH = Path(__file__).parent / "baseline_results.txt"
 
 
-def load_sst2_sample(n_per_class: int = N_PER_CLASS) -> pd.DataFrame:
-    """Загружает сбалансированный срез SST2 как DataFrame с колонками
-    text и label (0 = negative, 1 = positive)."""
-    ds: Dataset = load_dataset("stanfordnlp/sst2", split="train")
-    positive = ds.filter(lambda row: row["label"] == 1).shuffle(seed=42).select(range(n_per_class))
-    negative = ds.filter(lambda row: row["label"] == 0).shuffle(seed=42).select(range(n_per_class))
-    df = concatenate_datasets([positive, negative]).shuffle(seed=42).to_pandas()
-    return df.rename(columns={"sentence": "text"})[["text", "label"]]
-
-
 # 1-2. Датасет: DataFrame с текстом и меткой, списки текстов и меток
-df = load_sst2_sample()
+df = load_sst2_sample(N_PER_CLASS)
 print(f"Датасет: {len(df)} текстов")
 print(f"Баланс классов:\n{df['label'].value_counts().to_string()}")
 
