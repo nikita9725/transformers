@@ -13,10 +13,12 @@ from datasets import concatenate_datasets, load_dataset
 from huggingface_hub.utils import disable_progress_bars
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
-from torch.optim import Optimizer
+from sklearn.model_selection import train_test_split
+from torch.optim import AdamW, Optimizer
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
     AutoModel,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
     BatchEncoding,
     PreTrainedModel,
@@ -24,7 +26,7 @@ from transformers import (
 )
 from transformers.utils import logging
 
-from typings import Attentions, ModelInput
+from typings import Attentions, ClassifierBundle, LoadersBundle, ModelInput, TextSplit
 
 # Настраиваем окружение до импорта transformers
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
@@ -240,6 +242,76 @@ def evaluate(
     accuracy = accuracy_score(true_labels, predictions)
     macro_f1 = f1_score(true_labels, predictions, average="macro")
     return float(accuracy), float(macro_f1)
+
+
+def load_sentiment_split() -> TextSplit:
+    """Тексты и метки локального датасета, разбитые 80/20.
+
+    Стратифицированный сплит с фиксированным сидом: баланс классов
+    сохраняется в обеих частях, разбиение воспроизводимо.
+    """
+    df = load_sentiment_dataset()
+    texts = df["text"].tolist()
+    labels = [int(label) for label in df["label"]]
+    train_texts, val_texts, train_labels, val_labels = train_test_split(
+        texts, labels, test_size=0.2, random_state=42, stratify=labels
+    )
+    return train_texts, val_texts, train_labels, val_labels
+
+
+def build_sentiment_loaders(max_length: int = 64, batch_size: int = 16) -> LoadersBundle:
+    """DataLoader'ы для обучения сентимент-модели и число классов.
+
+    Трейн-лоадер с shuffle, валидационный — детерминированный.
+    """
+    train_texts, val_texts, train_labels, val_labels = load_sentiment_split()
+
+    tokenizer = get_tokenizer(EN_MODEL)
+    train_dataset = SentimentDataset(train_texts, train_labels, tokenizer, max_length=max_length)
+    val_dataset = SentimentDataset(val_texts, val_labels, tokenizer, max_length=max_length)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
+    num_labels = len(set(train_labels) | set(val_labels))
+    return train_loader, val_loader, num_labels
+
+
+def build_classifier(num_labels: int, lr: float = 2e-5) -> ClassifierBundle:
+    """Модель с классификационной головой, оптимизатор и устройство.
+
+    Тело берётся из предобученного чекпоинта, голова создаётся со
+    случайными весами — её и дообучает файн-тюнинг.
+    """
+    model = AutoModelForSequenceClassification.from_pretrained(EN_MODEL, num_labels=num_labels)
+    optimizer = AdamW(model.parameters(), lr=lr)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    return model, optimizer, device
+
+
+def train_loop(
+    model: PreTrainedModel,
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+    optimizer: Optimizer,
+    device: torch.device,
+    num_epochs: int,
+) -> tuple[float, float]:
+    """Цикл обучения: после каждой эпохи печатает метрики на валидации.
+
+    Возвращает финальные (accuracy, macro F1).
+    """
+    val_acc, val_f1 = 0.0, 0.0
+    for epoch in range(num_epochs):
+        train_loss = train_epoch(model, train_loader, optimizer, device)
+        val_acc, val_f1 = evaluate(model, val_loader, device)
+
+        print(f"Epoch {epoch + 1}/{num_epochs}")
+        print(f"Train Loss: {train_loss:.4f}")
+        print(f"Val Accuracy: {val_acc:.4f}")
+        print(f"Val F1: {val_f1:.4f}")
+        print("-" * 50)
+    return val_acc, val_f1
 
 
 def get_embeddings(

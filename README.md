@@ -50,8 +50,8 @@ uv run python -m day5.save_model
 ## Структура
 
 ```
-common.py          # Общие утилиты: токенизатор/модель, эмбеддинги, датасет SST2, SentimentDataset
-typings.py         # Общие типы: ModelInput, Attentions, HeadLink
+common.py          # Общие утилиты: токенизатор/модель, эмбеддинги, датасеты, хелперы обучения
+typings.py         # Общие типы: ModelInput, Attentions, HeadLink, TextSplit, LoadersBundle, ClassifierBundle
 fine_tuned_results.txt # Финальные метрики дообученной модели (создаётся day5/save_model.py)
 models/            # Все сохранённые модели (в .gitignore)
 day1/              # День 1: Архитектура трансформеров и токенизация
