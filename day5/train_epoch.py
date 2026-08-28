@@ -1,11 +1,17 @@
 import torch
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
-from torch.optim import AdamW, Optimizer
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from transformers import AutoModelForSequenceClassification, PreTrainedModel
 
-from common import EN_MODEL, SentimentDataset, get_tokenizer, load_sentiment_dataset
+from common import (
+    EN_MODEL,
+    SentimentDataset,
+    get_tokenizer,
+    load_sentiment_dataset,
+    train_epoch,
+)
 
 # День 5, задача 5: функция обучения одной эпохи
 # Обучение идёт на CPU, поэтому последовательности укорочены до 64 токенов:
@@ -36,38 +42,6 @@ model = AutoModelForSequenceClassification.from_pretrained(EN_MODEL, num_labels=
 optimizer = AdamW(model.parameters(), lr=2e-5)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
-
-
-def train_epoch(
-    model: PreTrainedModel,
-    dataloader: DataLoader,
-    optimizer: Optimizer,
-    device: torch.device,
-) -> float:
-    """Одна эпоха обучения; возвращает средний лосс по батчам."""
-    model.train()
-    total_loss = 0
-
-    for batch in dataloader:
-        optimizer.zero_grad()
-
-        input_ids = batch["input_ids"].to(device)
-        attention_mask = batch["attention_mask"].to(device)
-        labels = batch["labels"].to(device)
-
-        outputs = model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels,
-        )
-
-        loss = outputs.loss
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item()
-
-    return total_loss / len(dataloader)
 
 
 def eval_epoch(

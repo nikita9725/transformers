@@ -11,8 +11,10 @@ import torch
 from datasets import Dataset as HFDataset
 from datasets import concatenate_datasets, load_dataset
 from huggingface_hub.utils import disable_progress_bars
+from sklearn.metrics import accuracy_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
-from torch.utils.data import Dataset
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader, Dataset
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -177,6 +179,67 @@ class SentimentDataset(Dataset):
             # CrossEntropyLoss ожидает индексы классов в long
             "labels": torch.tensor(label, dtype=torch.long),
         }
+
+
+def train_epoch(
+    model: PreTrainedModel,
+    dataloader: DataLoader,
+    optimizer: Optimizer,
+    device: torch.device,
+) -> float:
+    """Одна эпоха обучения; возвращает средний лосс по батчам."""
+    model.train()
+    total_loss = 0
+
+    for batch in dataloader:
+        optimizer.zero_grad()
+
+        input_ids = batch["input_ids"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
+        labels = batch["labels"].to(device)
+
+        outputs = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            labels=labels,
+        )
+
+        loss = outputs.loss
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item()
+
+    return total_loss / len(dataloader)
+
+
+def evaluate(
+    model: PreTrainedModel,
+    dataloader: DataLoader,
+    device: torch.device,
+) -> tuple[float, float]:
+    """Оценка классификации: accuracy и макро-F1 (без лосса и градиентов)."""
+    model.eval()
+    predictions: list[int] = []
+    true_labels: list[int] = []
+
+    with torch.no_grad():
+        for batch in dataloader:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["labels"].to(device)
+
+            # Без labels модель не считает лосс — только логиты
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+
+            preds = torch.argmax(outputs.logits, dim=1)
+
+            predictions.extend(preds.cpu().tolist())
+            true_labels.extend(labels.cpu().tolist())
+
+    accuracy = accuracy_score(true_labels, predictions)
+    macro_f1 = f1_score(true_labels, predictions, average="macro")
+    return float(accuracy), float(macro_f1)
 
 
 def get_embeddings(
