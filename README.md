@@ -40,6 +40,7 @@ uv run python -m day4.logistic_regression
 uv run python -m day5.dataset
 uv run python -m day5.prepare_data
 uv run python -m day5.model_loading
+uv run python -m day5.training_setup
 ```
 
 ## Структура
@@ -72,6 +73,7 @@ day5/              # День 5: Файн-тюнинг трансформера
   dataset.py       #   SentimentDataset: проверка элемента датасета на примерах из датасета
   prepare_data.py  #   Загрузка локального датасета, сплит 80/20, train/val датасеты
   model_loading.py #   Модель для классификации + DataLoaders: параметры, батчи, формы
+  training_setup.py #  Настройка обучения: оптимизатор, устройство, лосс случайной головы
 ```
 
 ## Зависимости
