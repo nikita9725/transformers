@@ -1,4 +1,6 @@
+import csv
 import os
+from pathlib import Path
 from typing import cast
 
 import matplotlib.pyplot as plt
@@ -108,6 +110,32 @@ def load_sst2_sample(n_per_class: int = 1000) -> pd.DataFrame:
     negative = ds.filter(lambda row: row["label"] == 0).shuffle(seed=42).select(range(n_per_class))
     df = concatenate_datasets([positive, negative]).shuffle(seed=42).to_pandas()
     return df.rename(columns={"sentence": "text"})[["text", "label"]]
+
+
+SENTIMENT_DATA_DIR = Path(__file__).parent / "datasets" / "sentiment labelled sentences"
+SENTIMENT_FILES = ("amazon_cells_labelled.txt", "imdb_labelled.txt", "yelp_labelled.txt")
+
+
+def load_sentiment_dataset() -> pd.DataFrame:
+    """Загружает локальный датасет 'Sentiment Labelled Sentences' (UCI):
+    три TSV-файла (amazon, imdb, yelp) по 1000 предложений с метками 0/1.
+
+    Возвращает DataFrame с колонками text, label и source (сайт-источник).
+    """
+    frames = []
+    for name in SENTIMENT_FILES:
+        path = SENTIMENT_DATA_DIR / name
+        # quoting=QUOTE_NONE: в imdb-части встречаются кавычки, и без этого
+        # pandas склеивает строки между собой (теряется ~25% датасета)
+        frame = pd.read_csv(
+            path, sep="\t", header=None, names=["text", "label"], quoting=csv.QUOTE_NONE
+        )
+        # Убираем пустые строки (файлы заканчиваются пустой последней строкой)
+        frame = frame.dropna(subset=["text"])
+        # Запоминаем источник предложений — пригодится для анализа по сайтам
+        frame["source"] = path.stem
+        frames.append(frame)
+    return pd.concat(frames, ignore_index=True)[["text", "label", "source"]]
 
 
 class SentimentDataset(Dataset):

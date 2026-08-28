@@ -38,6 +38,7 @@ uv run python -m day4.logistic_regression
 
 # День 5: Файн-тюнинг трансформера
 uv run python -m day5.dataset
+uv run python -m day5.prepare_data
 ```
 
 ## Структура
@@ -67,7 +68,8 @@ day4/              # День 4: Эмбеддинги для классифик�
   logistic_regression.py # Бейзлайн на SST2: логрегрессия на CLS-эмбеддингах
   baseline_results.txt # Отчёт и macro F1 бейзлайна (создаётся скриптом)
 day5/              # День 5: Файн-тюнинг трансформера
-  dataset.py       #   SentimentDataset: проверка элемента датасета на примерах SST2
+  dataset.py       #   SentimentDataset: проверка элемента датасета на примерах из датасета
+  prepare_data.py  #   Загрузка локального датасета, сплит 80/20, train/val датасеты
 ```
 
 ## Зависимости

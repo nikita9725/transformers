@@ -1,13 +1,18 @@
-from common import EN_MODEL, SentimentDataset, get_tokenizer, load_sst2_sample
+import pandas as pd
+
+from common import EN_MODEL, SentimentDataset, get_tokenizer, load_sentiment_dataset
 
 # День 5, задача 1: подготовка Dataset класса
 # Сам класс SentimentDataset лежит в common.py — он понадобится
 # в следующих задачах дня (DataLoader, обучение, оценка).
 
-# Четыре настоящие рецензии из SST2: две положительные, две отрицательные
-df = load_sst2_sample(n_per_class=2)
-texts = df["text"].tolist()
-labels = [int(label) for label in df["label"]]
+# Четыре предложения из локального датасета: два отрицательных, два положительных
+df = load_sentiment_dataset()
+negative = df[df["label"] == 0].head(2)
+positive = df[df["label"] == 1].head(2)
+sample = pd.concat([negative, positive], ignore_index=True)
+texts = sample["text"].tolist()
+labels = [int(label) for label in sample["label"]]
 
 print(f"Датасет: {len(texts)} текста")
 for text, label in zip(texts, labels):

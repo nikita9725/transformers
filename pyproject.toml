@@ -28,7 +28,14 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
+[tool.ruff.lint.isort]
+# Папка datasets/ в корне — это данные, а не код; библиотека datasets остаётся сторонней
+known-third-party = ["datasets"]
+
 [tool.mypy]
 python_version = "3.13"
 strict = false
 ignore_missing_imports = true
+# Папка данных datasets/ в корне иначе затеняет библиотеку datasets для mypy;
+# наши пакеты (day1-day5) — обычные, с __init__.py, на них настройка не влияет
+namespace_packages = false
