@@ -43,6 +43,7 @@ uv run python -m day5.model_loading
 uv run python -m day5.training_setup
 uv run python -m day5.train_epoch
 uv run python -m day5.evaluate
+uv run python -m day5.train_model
 ```
 
 ## Структура
@@ -78,6 +79,7 @@ day5/              # День 5: Файн-тюнинг трансформера
   training_setup.py #  Настройка обучения: оптимизатор, устройство, лосс случайной головы
   train_epoch.py   #   Цикл обучения одной эпохи + валидация (лосс, accuracy, macro F1)
   evaluate.py      #   Функция оценки: accuracy и macro F1 до и после обучения
+  train_model.py   #   Полное обучение: 3 эпохи с оценкой после каждой
 ```
 
 ## Зависимости
