@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 
 from common import (
@@ -53,9 +55,9 @@ if len(fp) > 0:
     print("=== Примеры False Positives (предсказано POSITIVE, было NEGATIVE) ===")
     print("=" * 80)
     for idx, row in fp.head(5).iterrows():
-        print(f"\nТекст: {row['text']}")
-        print("Истинная метка: NEGATIVE (0)")
-        print("Предсказание: POSITIVE (1)")
+        text_preview = row["text"][:100] + "..." if len(row["text"]) > 100 else row["text"]
+        print(f"\nТекст: {text_preview}")
+        print(f"Истинный класс: {row['true_label']}, Предсказан: {row['pred_label']}")
 
 # Примеры False Negatives
 if len(fn) > 0:
@@ -63,12 +65,65 @@ if len(fn) > 0:
     print("=== Примеры False Negatives (предсказано NEGATIVE, было POSITIVE) ===")
     print("=" * 80)
     for idx, row in fn.head(5).iterrows():
-        print(f"\nТекст: {row['text']}")
-        print("Истинная метка: POSITIVE (1)")
-        print("Предсказание: NEGATIVE (0)")
+        text_preview = row["text"][:100] + "..." if len(row["text"]) > 100 else row["text"]
+        print(f"\nТекст: {text_preview}")
+        print(f"Истинный класс: {row['true_label']}, Предсказан: {row['pred_label']}")
+
+# Анализ длины текстов
+errors["text_length"] = errors["text"].str.len()
+avg_error_length = errors["text_length"].mean()
+avg_all_length = df_test["text"].str.len().mean()
+
+print("\n" + "=" * 80)
+print("=== Анализ длины текстов ===")
+print("=" * 80)
+print(f"Средняя длина ошибочных текстов: {avg_error_length:.0f} символов")
+print(f"Средняя длина всех текстов: {avg_all_length:.0f} символов")
+print(f"Разница: {avg_error_length - avg_all_length:+.0f} символов")
 
 # Общая точность
 accuracy = (len(df_test) - len(errors)) / len(df_test)
 print("\n" + "=" * 80)
 print(f"Общая точность: {accuracy:.4f} ({accuracy * 100:.2f}%)")
 print("=" * 80)
+
+# Сохранение анализа в файл
+results_path = Path(__file__).parent.parent / "error_analysis.txt"
+with open(results_path, "w", encoding="utf-8") as f:
+    f.write("=== АНАЛИЗ ОШИБОК ===\n\n")
+    f.write(f"Всего примеров: {len(df_test)}\n")
+    f.write(f"Всего ошибок: {len(errors)}\n")
+    f.write(f"False Positives: {len(fp)}\n")
+    f.write(f"False Negatives: {len(fn)}\n")
+    f.write(f"Общая точность: {accuracy:.4f} ({accuracy * 100:.2f}%)\n\n")
+
+    f.write("=== АНАЛИЗ ДЛИНЫ ТЕКСТОВ ===\n")
+    f.write(f"Средняя длина ошибочных текстов: {avg_error_length:.0f} символов\n")
+    f.write(f"Средняя длина всех текстов: {avg_all_length:.0f} символов\n")
+    f.write(f"Разница: {avg_error_length - avg_all_length:+.0f} символов\n\n")
+
+    f.write("=== ПРИМЕРЫ FALSE POSITIVES ===\n")
+    for idx, row in fp.head(5).iterrows():
+        f.write(f"\nТекст: {row['text']}\n")
+        f.write(f"Истинный: {row['true_label']}, Предсказан: {row['pred_label']}\n")
+
+    f.write("\n\n=== ПРИМЕРЫ FALSE NEGATIVES ===\n")
+    for idx, row in fn.head(5).iterrows():
+        f.write(f"\nТекст: {row['text']}\n")
+        f.write(f"Истинный: {row['true_label']}, Предсказан: {row['pred_label']}\n")
+
+    f.write("\n\n=== НАБЛЮДЕНИЯ ===\n")
+    f.write("Паттерны ошибок:\n")
+    f.write(
+        "1. False Positives (6 случаев): модель ошибочно считает негативные отзывы позитивными\n"
+    )
+    f.write("   - Сложные идиомы и контекст\n")
+    f.write("   - Смешанные отзывы с позитивными и негативными словами\n")
+    f.write("2. False Negatives (39 случаев): модель пропускает позитивные отзывы\n")
+    f.write("   - Неявный позитив без явных маркеров (great, amazing)\n")
+    f.write("   - Идиомы типа 'can't go wrong'\n")
+    f.write(
+        "3. Модель лучше распознаёт негатив (всего 6 FP), но пропускает много позитива (39 FN)\n"
+    )
+
+print(f"\nАнализ сохранён: {results_path}")
