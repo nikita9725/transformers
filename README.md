@@ -48,6 +48,7 @@ uv run python -m day5.save_model
 
 # День 6: Сравнение baseline и fine-tuned моделей
 uv run python -m day6.compare_models
+uv run python -m day6.predict
 ```
 
 ## Структура
@@ -90,6 +91,7 @@ day5/              # День 5: Файн-тюнинг трансформера
   save_model.py    #   Обучение + сохранение чекпоинта в models/; метрики — в корень
 day6/              # День 6: Сравнение baseline и fine-tuned моделей
   compare_models.py #   Сравнение логрегрессии (день 4) и fine-tuned (день 5) на одном тесте
+  predict.py       #   Функция предсказания для fine-tuned модели с демонстрацией
 ```
 
 ## Зависимости

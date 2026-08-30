@@ -28,6 +28,9 @@ from transformers.utils import logging
 
 from typings import Attentions, ClassifierBundle, LoadersBundle, ModelInput, TextSplit
 
+# Путь к fine-tuned модели (день 5)
+MODEL_FT_DIR = Path(__file__).parent / "models" / "fine_tuned_model"
+
 # Настраиваем окружение до импорта transformers
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"

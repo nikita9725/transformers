@@ -2,6 +2,7 @@
 
 from typing import TypedDict
 
+import numpy as np
 import torch
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -17,6 +18,14 @@ class ModelInput(TypedDict):
     input_ids: torch.Tensor
     attention_mask: torch.Tensor
     labels: torch.Tensor
+
+
+class PredictionResult(TypedDict):
+    """Результат предсказания для одного текста."""
+
+    text: str
+    prediction: int
+    probabilities: np.ndarray
 
 
 # Результат сканирования голов: (вес, слой, голова, токен)
