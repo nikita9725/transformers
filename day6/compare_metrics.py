@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import joblib
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
@@ -59,3 +61,18 @@ print(f"\nУлучшение F1: {(f1_ft - f1_bl) / f1_bl * 100:.2f}%")
 print(f"Улучшение Accuracy: {(acc_ft - acc_bl) / acc_bl * 100:.2f}%")
 print(f"\nАбсолютное улучшение F1: +{f1_ft - f1_bl:.4f}")
 print(f"Абсолютное улучшение Accuracy: +{acc_ft - acc_bl:.4f}")
+
+# Сохранение результатов в файл
+results_path = Path(__file__).parent.parent / "comparison_results.txt"
+with open(results_path, "w") as f:
+    f.write("=== Сравнение моделей ===\n\n")
+    f.write("Fine-tuned Model:\n")
+    f.write(f"  F1 (macro): {f1_ft:.4f}\n")
+    f.write(f"  Accuracy: {acc_ft:.4f}\n")
+    f.write("\nBaseline Model:\n")
+    f.write(f"  F1 (macro): {f1_bl:.4f}\n")
+    f.write(f"  Accuracy: {acc_bl:.4f}\n")
+    f.write(f"\nУлучшение F1: {(f1_ft - f1_bl) / f1_bl * 100:.2f}%\n")
+    f.write(f"Улучшение Accuracy: {(acc_ft - acc_bl) / acc_bl * 100:.2f}%\n")
+
+print(f"\nРезультаты сохранены: {results_path}")
