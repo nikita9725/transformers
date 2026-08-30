@@ -45,6 +45,9 @@ uv run python -m day5.train_epoch
 uv run python -m day5.evaluate
 uv run python -m day5.train_model
 uv run python -m day5.save_model
+
+# День 6: Сравнение baseline и fine-tuned моделей
+uv run python -m day6.compare_models
 ```
 
 ## Структура
@@ -75,6 +78,7 @@ day4/              # День 4: Эмбеддинги для классифик�
   cls_embeddings.py #  Извлечение CLS-эмбеддингов батчами, проверка размерности
   logistic_regression.py # Бейзлайн на SST2: логрегрессия на CLS-эмбеддингах
   baseline_results.txt # Отчёт и macro F1 бейзлайна (создаётся скриптом)
+  baseline_model.pkl # Обученная модель логрегрессии (создаётся скриптом, в .gitignore)
 day5/              # День 5: Файн-тюнинг трансформера
   dataset.py       #   SentimentDataset: проверка элемента датасета на примерах из датасета
   prepare_data.py  #   Загрузка локального датасета, сплит 80/20, train/val датасеты
@@ -84,6 +88,8 @@ day5/              # День 5: Файн-тюнинг трансформера
   evaluate.py      #   Функция оценки: accuracy и macro F1 до и после обучения
   train_model.py   #   Полное обучение: 3 эпохи с оценкой после каждой
   save_model.py    #   Обучение + сохранение чекпоинта в models/; метрики — в корень
+day6/              # День 6: Сравнение baseline и fine-tuned моделей
+  compare_models.py #   Сравнение логрегрессии (день 4) и fine-tuned (день 5) на одном тесте
 ```
 
 ## Зависимости
