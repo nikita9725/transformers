@@ -31,6 +31,9 @@ from typings import Attentions, ClassifierBundle, LoadersBundle, ModelInput, Tex
 # Путь к fine-tuned модели (день 5)
 MODEL_FT_DIR = Path(__file__).parent / "models" / "fine_tuned_model"
 
+# Путь к baseline модели (день 4)
+MODEL_BASELINE_PATH = Path(__file__).parent / "day4" / "baseline_model.pkl"
+
 # Настраиваем окружение до импорта transformers
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
