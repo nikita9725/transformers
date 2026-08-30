@@ -50,6 +50,7 @@ uv run python -m day5.save_model
 uv run python -m day6.compare_models
 uv run python -m day6.predict
 uv run python -m day6.confusion_matrix
+uv run python -m day6.compare_metrics
 ```
 
 ## Структура
@@ -94,6 +95,7 @@ day6/              # День 6: Сравнение baseline и fine-tuned мо�
   compare_models.py #   Сравнение логрегрессии (день 4) и fine-tuned (день 5) на одном тесте
   predict.py       #   Функции предсказания для fine-tuned и baseline моделей
   confusion_matrix.py # Confusion matrix для обеих моделей с визуализацией
+  compare_metrics.py #  Детальное сравнение метрик: classification_report, F1, accuracy
 ```
 
 ## Зависимости
