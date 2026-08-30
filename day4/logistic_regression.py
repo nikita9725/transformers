@@ -1,66 +1,57 @@
 from pathlib import Path
 
+import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score
-from sklearn.model_selection import train_test_split
 
-from common import EN_MODEL, get_embeddings, get_model, get_tokenizer, load_sst2_sample
+from common import EN_MODEL, get_embeddings, get_model, get_tokenizer, load_sentiment_split
 
 # День 4, задача 3: Logistic Regression на CLS-эмбеддингах
-# Датасет: SST2 (Stanford Sentiment Treebank) — рецензии с бинарной
-# разметкой сентимента (0 = negative, 1 = positive).
-# Берём сбалансированный срез по N_PER_CLASS текстов на класс:
-# полного датасета (67 тысяч) для линейного бейзлайна не нужно,
-# а время извлечения эмбеддингов растёт линейно.
+# Датасет: локальный датасет sentiment labelled sentences (amazon, imdb, yelp)
+# с бинарной разметкой сентимента (0 = negative, 1 = positive).
 
-N_PER_CLASS = 1000
 RESULTS_PATH = Path(__file__).parent / "baseline_results.txt"
 
 
-# 1-2. Датасет: DataFrame с текстом и меткой, списки текстов и меток
-df = load_sst2_sample(N_PER_CLASS)
-print(f"Датасет: {len(df)} текстов")
-print(f"Баланс классов:\n{df['label'].value_counts().to_string()}")
+# 1-2. Загрузка датасета (уже разделён на train/val)
+train_texts, val_texts, train_labels, val_labels = load_sentiment_split()
+print(f"Датасет: {len(train_texts) + len(val_texts)} текстов")
+print(f"Train: {len(train_texts)}, val: {len(val_texts)}")
 
-texts = df["text"].tolist()
-y = df["label"].to_numpy()
-
-# 3. CLS-эмбеддинги всех текстов (get_embeddings из common.py —
-# аналог get_cls_embeddings из задания: батчи, no_grad, CLS, vstack)
+# 3. CLS-эмбеддинги для train и val
 tokenizer = get_tokenizer(EN_MODEL)
 model = get_model(EN_MODEL)
 model.eval()
 
 print("\nИзвлекаю эмбеддинги...")
-X = get_embeddings(texts, tokenizer, model)
-print(f"Эмбеддинги: {X.shape}")  # [n_texts, 768]
-
-# 4. Разделение 80/20 со стратификацией (баланс классов в обеих частях)
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=42
-)
-print(f"Train: {len(X_train)}, test: {len(X_test)}")
+X_train = get_embeddings(train_texts, tokenizer, model)
+X_val = get_embeddings(val_texts, tokenizer, model)
+print(f"Train эмбеддинги: {X_train.shape}")
+print(f"Val эмбеддинги: {X_val.shape}")
 
 # 5-7. Логистическая регрессия: обучение
-# В задании был n_jobs=-1, но в sklearn >= 1.8 он на логрегрессию
-# не влияет и помечен как устаревший — поэтому без него
 clf = LogisticRegression(max_iter=1000)
-clf.fit(X_train, y_train)
+clf.fit(X_train, train_labels)
 
-# 8. Предсказания на тесте
-y_pred = clf.predict(X_test)
+# 8. Предсказания на валидации
+y_pred = clf.predict(X_val)
 
 # 9-11. Отчёт и macro F1
-report = classification_report(y_test, y_pred, target_names=["negative", "positive"])
+report = classification_report(val_labels, y_pred, target_names=["negative", "positive"])
 print(f"\n{report}")
-f1 = f1_score(y_test, y_pred, average="macro")
+f1 = f1_score(val_labels, y_pred, average="macro")
 print(f"Macro F1: {f1:.4f}")
 
 # 12. Сохранение результатов
 RESULTS_PATH.write_text(
-    "Baseline: Logistic Regression на CLS-эмбеддингах (SST2)\n\n"
-    f"Train: {len(X_train)}, test: {len(X_test)}\n\n"
+    "Baseline: Logistic Regression на CLS-эмбеддингах (локальный датасет)\n\n"
+    f"Train: {len(X_train)}, val: {len(X_val)}\n\n"
     f"{report}\n"
     f"Macro F1: {f1:.4f}\n"
 )
 print(f"\nРезультаты сохранены: {RESULTS_PATH}")
+
+# 13. Сохранение модели для повторного использования
+MODEL_PATH = Path(__file__).parent / "baseline_model.pkl"
+joblib.dump(clf, MODEL_PATH)
+print(f"Модель сохранена: {MODEL_PATH}")
