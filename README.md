@@ -51,6 +51,9 @@ uv run python -m day6.compare_models
 uv run python -m day6.predict
 uv run python -m day6.confusion_matrix
 uv run python -m day6.compare_metrics
+
+# День 7: Анализ ошибок
+uv run python -m day7.error_analysis
 ```
 
 ## Структура
@@ -96,6 +99,8 @@ day6/              # День 6: Сравнение baseline и fine-tuned мо�
   predict.py       #   Функции предсказания для fine-tuned и baseline моделей
   confusion_matrix.py # Confusion matrix для обеих моделей с визуализацией
   compare_metrics.py #  Детальное сравнение метрик: classification_report, F1, accuracy
+day7/              # День 7: Анализ ошибок
+  error_analysis.py #   Анализ False Positive и False Negative с примерами ошибок
 ```
 
 ## Зависимости

@@ -6,8 +6,9 @@ from common import (
     load_baseline_model,
     load_fine_tuned_model,
     load_sentiment_split,
+    predict_baseline,
+    predict_fine_tuned,
 )
-from day6.predict import predict_baseline, predict_fine_tuned
 
 # Загрузка тестовых данных
 print("Загрузка тестовых данных...")
