@@ -1,10 +1,12 @@
 from pathlib import Path
 
-import joblib
 from sklearn.metrics import accuracy_score, classification_report, f1_score
-from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 
-from common import MODEL_BASELINE_PATH, MODEL_FT_DIR, get_tokenizer, load_sentiment_split
+from common import (
+    load_baseline_model,
+    load_fine_tuned_model,
+    load_sentiment_split,
+)
 from day6.predict import predict_baseline, predict_fine_tuned
 
 # Загрузка тестовых данных
@@ -14,16 +16,11 @@ print(f"Тестовых примеров: {len(val_texts)}")
 
 # Загрузка fine-tuned модели
 print("\nЗагрузка fine-tuned модели...")
-model_ft = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
-tokenizer_ft = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
-model_ft.eval()
+model_ft, tokenizer_ft = load_fine_tuned_model()
 
 # Загрузка baseline модели
 print("Загрузка baseline модели...")
-model_bl = joblib.load(MODEL_BASELINE_PATH)
-tokenizer_bl = get_tokenizer("distilbert-base-uncased")
-model_bl_emb = AutoModel.from_pretrained("distilbert-base-uncased")
-model_bl_emb.eval()
+model_bl, tokenizer_bl, model_bl_emb = load_baseline_model()
 
 # Получение предсказаний fine-tuned модели
 print("\nПолучение предсказаний fine-tuned модели...")

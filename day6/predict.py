@@ -1,15 +1,8 @@
-import joblib
 import torch
 from sklearn.linear_model import LogisticRegression
-from transformers import (
-    AutoModel,
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-    PreTrainedModel,
-    PreTrainedTokenizerBase,
-)
+from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
-from common import MODEL_BASELINE_PATH, MODEL_FT_DIR, get_embeddings
+from common import get_embeddings, load_baseline_model, load_fine_tuned_model
 from typings import PredictionResult
 
 
@@ -98,16 +91,11 @@ def predict_baseline(
 if __name__ == "__main__":
     # Загрузка fine-tuned модели
     print("Загрузка fine-tuned модели...")
-    model_ft = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
-    tokenizer_ft = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
-    model_ft.eval()
+    model_ft, tokenizer_ft = load_fine_tuned_model()
 
     # Загрузка baseline модели
     print("Загрузка baseline модели...")
-    model_bl = joblib.load(MODEL_BASELINE_PATH)
-    tokenizer_bl = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-    model_bl_emb = AutoModel.from_pretrained("distilbert-base-uncased")
-    model_bl_emb.eval()
+    model_bl, tokenizer_bl, model_bl_emb = load_baseline_model()
 
     # Тестовые примеры
     test_texts = [

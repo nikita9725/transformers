@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import cast
 
+import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ import torch
 from datasets import Dataset as HFDataset
 from datasets import concatenate_datasets, load_dataset
 from huggingface_hub.utils import disable_progress_bars
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
@@ -44,6 +46,23 @@ disable_progress_bars()
 
 EN_MODEL = "distilbert-base-uncased"
 RU_MODEL = "distilbert-base-multilingual-cased"
+
+
+def load_fine_tuned_model() -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
+    """Загружает fine-tuned модель и токенизатор."""
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
+    model.eval()
+    return model, tokenizer
+
+
+def load_baseline_model() -> tuple[LogisticRegression, PreTrainedTokenizerBase, PreTrainedModel]:
+    """Загружает baseline модель, токенизатор и embedding модель."""
+    model = joblib.load(MODEL_BASELINE_PATH)
+    tokenizer = get_tokenizer(EN_MODEL)
+    embedding_model = AutoModel.from_pretrained(EN_MODEL)
+    embedding_model.eval()
+    return model, tokenizer, embedding_model
 
 
 def get_tokenizer(model_name: str = EN_MODEL) -> PreTrainedTokenizerBase:

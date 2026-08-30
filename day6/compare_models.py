@@ -1,42 +1,31 @@
-from pathlib import Path
-
-import joblib
 import torch
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader
-from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 
 from common import (
     SentimentDataset,
     evaluate,
     get_embeddings,
-    get_tokenizer,
+    load_baseline_model,
+    load_fine_tuned_model,
     load_sentiment_split,
 )
 
 # День 6, задача 1: сравнение baseline (день 4) и fine-tuned (день 5)
 
 # Загрузка fine-tuned модели из дня 5
-MODEL_FT_DIR = Path(__file__).parent.parent / "models" / "fine_tuned_model"
-model_ft = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
-tokenizer_ft = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
-model_ft.eval()
+model_ft, tokenizer_ft = load_fine_tuned_model()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_ft.to(device)
+model_ft.to(device)  # type: ignore[arg-type]
 
 # Подготовка данных (тот же сплит, что в дне 4)
 train_texts, val_texts, train_labels, val_labels = load_sentiment_split()
 
 # Загрузка baseline модели из дня 4
 print("Загрузка baseline модели (день 4)...")
-MODEL_PATH = Path(__file__).parent.parent / "day4" / "baseline_model.pkl"
-clf = joblib.load(MODEL_PATH)
+clf, tokenizer_base, model_base = load_baseline_model()
 
 # Получение эмбеддингов для baseline
-tokenizer_base = get_tokenizer("distilbert-base-uncased")
-model_base = AutoModel.from_pretrained("distilbert-base-uncased")
-model_base.eval()
-
 X_val = get_embeddings(val_texts, tokenizer_base, model_base)
 y_pred_bl = clf.predict(X_val)
 acc_bl = accuracy_score(val_labels, y_pred_bl)
