@@ -54,6 +54,9 @@ uv run python -m day6.compare_metrics
 
 # День 7: Анализ ошибок
 uv run python -m day7.error_analysis
+
+# Веб-приложение (Gradio)
+uv run python app.py
 ```
 
 ## Структура
@@ -61,6 +64,7 @@ uv run python -m day7.error_analysis
 ```
 common.py          # Общие утилиты: токенизатор/модель, эмбеддинги, датасеты, хелперы обучения
 typings.py         # Общие типы: ModelInput, Attentions, HeadLink, TextSplit, LoadersBundle, ClassifierBundle
+app.py             # Веб-интерфейс для анализа тональности
 fine_tuned_results.txt # Финальные метрики дообученной модели (создаётся day5/save_model.py)
 models/            # Все сохранённые модели (в .gitignore)
 day1/              # День 1: Архитектура трансформеров и токенизация
@@ -107,6 +111,7 @@ day7/              # День 7: Анализ ошибок
 
 - **transformers** — HuggingFace Transformers (токенизаторы, модели)
 - **torch** — PyTorch (тензоры, обучение моделей)
+- **gradio** — веб-интерфейс для анализа тональности
 - **scikit-learn** — cosine similarity, классификация и метрики
 - **matplotlib** — графики и отображение окон
 - **seaborn** — heatmap-визуализация attention
