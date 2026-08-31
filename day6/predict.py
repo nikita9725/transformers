@@ -1,92 +1,9 @@
-import torch
-from sklearn.linear_model import LogisticRegression
-from transformers import PreTrainedModel, PreTrainedTokenizerBase
-
-from common import get_embeddings, load_baseline_model, load_fine_tuned_model
-from typings import PredictionResult
-
-
-def predict_fine_tuned(
-    texts: str | list[str],
-    model: PreTrainedModel,
-    tokenizer: PreTrainedTokenizerBase,
-) -> list[PredictionResult]:
-    """Функция предсказания для fine-tuned модели.
-
-    Args:
-        texts: строка или список строк для предсказания
-        model: fine-tuned модель (AutoModelForSequenceClassification)
-        tokenizer: токенизатор для модели
-
-    Returns:
-        Список словарей с предсказаниями:
-        - text: исходный текст
-        - prediction: предсказанный класс (0 или 1)
-        - probabilities: вероятности [P(negative), P(positive)]
-    """
-    if isinstance(texts, str):
-        texts = [texts]
-
-    predictions: list[PredictionResult] = []
-
-    for text in texts:
-        inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
-
-        with torch.no_grad():
-            outputs = model(**inputs)
-
-        probs = torch.nn.functional.softmax(outputs.logits, dim=1)
-        pred = int(torch.argmax(probs, dim=1).item())
-
-        predictions.append(
-            {"text": text, "prediction": pred, "probabilities": probs[0].cpu().numpy()}
-        )
-
-    return predictions
-
-
-def predict_baseline(
-    texts: str | list[str],
-    model: LogisticRegression,
-    tokenizer: PreTrainedTokenizerBase,
-    embedding_model: PreTrainedModel,
-) -> list[PredictionResult]:
-    """Функция предсказания для baseline модели (логрегрессия на CLS-эмбеддингах).
-
-    Args:
-        texts: строка или список строк для предсказания
-        model: baseline модель (LogisticRegression)
-        tokenizer: токенизатор для получения эмбеддингов
-        embedding_model: модель для извлечения CLS-эмбеддингов
-
-    Returns:
-        Список словарей с предсказаниями:
-        - text: исходный текст
-        - prediction: предсказанный класс (0 или 1)
-        - probabilities: вероятности [P(negative), P(positive)]
-    """
-    if isinstance(texts, str):
-        texts = [texts]
-
-    # Получение CLS-эмбеддингов
-    embeddings = get_embeddings(texts, tokenizer, embedding_model)
-
-    # Предсказания
-    predictions_arr = model.predict(embeddings)
-    probs_arr = model.predict_proba(embeddings)
-
-    results: list[PredictionResult] = []
-    for i, text in enumerate(texts):
-        results.append(
-            {
-                "text": text,
-                "prediction": int(predictions_arr[i]),
-                "probabilities": probs_arr[i],
-            }
-        )
-
-    return results
-
+from common import (
+    load_baseline_model,
+    load_fine_tuned_model,
+    predict_baseline,
+    predict_fine_tuned,
+)
 
 if __name__ == "__main__":
     # Загрузка fine-tuned модели
