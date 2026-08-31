@@ -1,6 +1,14 @@
-# Transformers
+# Sentiment Analysis с BERT
 
 Практика по трансформерам и HuggingFace Transformers. Каждый день — отдельная тема с заданиями.
+Проект по анализу тональности текстов с использованием трансформеров (DistilBERT):
+от токенизации и механизма внимания до файн-тюнга и сравнения с бейзлайном.
+
+## Описание
+
+Проект включает 7 учебных дней, посвящённых изучению трансформеров, и финальное
+Gradio-демо для анализа тональности. На основе DistilBERT строится полный pipeline:
+токенизация → эмбеддинги → механизм внимания → файн-тюнинг → сравнение моделей → анализ ошибок.
 
 ## Установка
 
@@ -105,6 +113,38 @@ day6/              # День 6: Сравнение baseline и fine-tuned мо�
   compare_metrics.py #  Детальное сравнение метрик: classification_report, F1, accuracy
 day7/              # День 7: Анализ ошибок
   error_analysis.py #   Анализ False Positive и False Negative с примерами ошибок
+```
+
+## Результаты
+
+### Fine-tuned модель (DistilBERT, 3 эпохи):
+- F1 (macro): 0.9248
+- Accuracy: 0.9250
+
+### Baseline модель (логистическая регрессия на CLS-эмбеддингах):
+- F1 (macro): 0.8967
+- Accuracy: 0.8967
+
+Улучшение F1: **3.14%**
+
+### Анализ ошибок
+- Всего примеров: 600, ошибок: 45 (точность 92.5%)
+- False Positives: 6 — модель ошибочно считает негативные отзывы позитивными
+- False Negatives: 39 — модель пропускает позитивные отзывы (неявный позитив, идиомы)
+
+## Использование в коде
+
+```python
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import torch
+
+model = AutoModelForSequenceClassification.from_pretrained('./models/fine_tuned_model')
+tokenizer = AutoTokenizer.from_pretrained('./models/fine_tuned_model')
+
+# Предсказание
+inputs = tokenizer("Your text here", return_tensors="pt")
+outputs = model(**inputs)
+pred = torch.argmax(outputs.logits, dim=1)
 ```
 
 ## Зависимости
