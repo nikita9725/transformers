@@ -115,15 +115,32 @@ with open(results_path, "w", encoding="utf-8") as f:
     f.write("\n\n=== НАБЛЮДЕНИЯ ===\n")
     f.write("Паттерны ошибок:\n")
     f.write(
-        "1. False Positives (6 случаев): модель ошибочно считает негативные отзывы позитивными\n"
+        f"1. False Positives ({len(fp)} случаев): "
+        "модель ошибочно считает негативные отзывы позитивными\n"
     )
-    f.write("   - Сложные идиомы и контекст\n")
-    f.write("   - Смешанные отзывы с позитивными и негативными словами\n")
-    f.write("2. False Negatives (39 случаев): модель пропускает позитивные отзывы\n")
-    f.write("   - Неявный позитив без явных маркеров (great, amazing)\n")
-    f.write("   - Идиомы типа 'can't go wrong'\n")
-    f.write(
-        "3. Модель лучше распознаёт негатив (всего 6 FP), но пропускает много позитива (39 FN)\n"
-    )
+    f.write(f"2. False Negatives ({len(fn)} случаев): модель пропускает позитивные отзывы\n")
+
+    # Сравнение длин текстов для FP и FN
+    if len(fp) > 0 and len(fn) > 0:
+        avg_fp_length = fp["text"].str.len().mean()
+        avg_fn_length = fn["text"].str.len().mean()
+        f.write("\nСредняя длина текстов:\n")
+        f.write(f"   - FP: {avg_fp_length:.0f} символов\n")
+        f.write(f"   - FN: {avg_fn_length:.0f} символов\n")
+
+    # Какой тип ошибок преобладает
+    f.write("\nВывод:\n")
+    if len(fp) < len(fn):
+        f.write(
+            f"   Модель лучше распознаёт негатив ({len(fp)} FP), "
+            f"но пропускает больше позитива ({len(fn)} FN)\n"
+        )
+    elif len(fn) < len(fp):
+        f.write(
+            f"   Модель лучше распознаёт позитив ({len(fn)} FN), "
+            f"но ошибочно помечает больше негатива как позитив ({len(fp)} FP)\n"
+        )
+    else:
+        f.write(f"   Оба типа ошибок встречаются одинаково часто ({len(fp)} FP и {len(fn)} FN)\n")
 
 print(f"\nАнализ сохранён: {results_path}")
