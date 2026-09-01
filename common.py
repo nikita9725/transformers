@@ -41,7 +41,7 @@ from typings import (
 MODEL_FT_DIR = Path(__file__).parent / "models" / "fine_tuned_model"
 
 # Путь к baseline модели (день 4)
-MODEL_BASELINE_PATH = Path(__file__).parent / "day4" / "baseline_model.pkl"
+MODEL_BASELINE_PATH = Path(__file__).parent / "models" / "baseline_model" / "model.pkl"
 
 # Настраиваем окружение до импорта transformers
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
