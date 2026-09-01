@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
@@ -9,6 +11,10 @@ from common import (
     predict_baseline,
     predict_fine_tuned,
 )
+
+# Директория для сохранения артефактов
+OUTPUT_DIR = Path(__file__).parent / "artifacts"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Загрузка тестовых данных
 print("Загрузка тестовых данных...")
@@ -42,7 +48,7 @@ print(cm_ft)
 print("\nConfusion Matrix - Baseline Model:")
 print(cm_bl)
 
-# Визуализация
+# Визуализация — обе модели на одном figure
 fig, axes = plt.subplots(1, 2, figsize=(16, 6))
 
 # Fine-tuned model
@@ -73,7 +79,9 @@ axes[1].set_title("Confusion Matrix - Baseline Model", fontsize=14, fontweight="
 axes[1].set_ylabel("True Label", fontsize=12)
 axes[1].set_xlabel("Predicted Label", fontsize=12)
 
-plt.tight_layout()
+fig.tight_layout()
+fig.savefig(OUTPUT_DIR / "confusion_matrix.png")
+print(f"Сохранено: {OUTPUT_DIR / 'confusion_matrix.png'}")
 plt.show()
 
 # Статистика

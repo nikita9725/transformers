@@ -1,31 +1,31 @@
 === АНАЛИЗ ОШИБОК ===
 
 Всего примеров: 600
-Всего ошибок: 45
-False Positives: 6
-False Negatives: 39
-Общая точность: 0.9250 (92.50%)
+Всего ошибок: 37
+False Positives: 17
+False Negatives: 20
+Общая точность: 0.9383 (93.83%)
 
 === АНАЛИЗ ДЛИНЫ ТЕКСТОВ ===
-Средняя длина ошибочных текстов: 90 символов
+Средняя длина ошибочных текстов: 72 символов
 Средняя длина всех текстов: 65 символов
-Разница: +25 символов
+Разница: +7 символов
 
 === ПРИМЕРЫ FALSE POSITIVES ===
+
+Текст: A FLY was in my apple juice.. A FLY!!!!!!!!
+Истинный: 0, Предсказан: 1
+
+Текст: This short film certainly pulls no punches.  
+Истинный: 0, Предсказан: 1
 
 Текст: seems like a good quick place to grab a bite of some familiar pub food, but do yourself a favor and look elsewhere.
 Истинный: 0, Предсказан: 1
 
+Текст: At least think to refill my water before I struggle to wave you over for 10 minutes.
+Истинный: 0, Предсказан: 1
+
 Текст: I advise EVERYONE DO NOT BE FOOLED!
-Истинный: 0, Предсказан: 1
-
-Текст: The chicken dishes are OK, the beef is like shoe leather.
-Истинный: 0, Предсказан: 1
-
-Текст: Characters are one-dimensional, even the good guys and especially the bad guys.  
-Истинный: 0, Предсказан: 1
-
-Текст: The only consistent thread holding the series together were the amazing performances of Leni Parker and Anita LaSelva as the two Taelons in quiet idealogical conflict.  
 Истинный: 0, Предсказан: 1
 
 
@@ -40,19 +40,21 @@ False Negatives: 39
 Текст: It is an insane game.  
 Истинный: 1, Предсказан: 0
 
-Текст: I really hope the team behind this movie makes more movies, and that they will continue to do so in their own, some kinda weird style.  
+Текст: It plays louder than any other speaker of this size; the price is so low that most would think the quality is lacking, however, it's not.
 Истинный: 1, Предсказан: 0
 
-Текст: It plays louder than any other speaker of this size; the price is so low that most would think the quality is lacking, however, it's not.
+Текст: Never had anything to complain about here.
 Истинный: 1, Предсказан: 0
 
 
 === НАБЛЮДЕНИЯ ===
 Паттерны ошибок:
-1. False Positives (6 случаев): модель ошибочно считает негативные отзывы позитивными
-   - Сложные идиомы и контекст
-   - Смешанные отзывы с позитивными и негативными словами
-2. False Negatives (39 случаев): модель пропускает позитивные отзывы
-   - Неявный позитив без явных маркеров (great, amazing)
-   - Идиомы типа 'can't go wrong'
-3. Модель лучше распознаёт негатив (всего 6 FP), но пропускает много позитива (39 FN)
+1. False Positives (17 случаев): модель ошибочно считает негативные отзывы позитивными
+2. False Negatives (20 случаев): модель пропускает позитивные отзывы
+
+Средняя длина текстов:
+   - FP: 79 символов
+   - FN: 67 символов
+
+Вывод:
+   Модель лучше распознаёт негатив (17 FP), но пропускает больше позитива (20 FN)

@@ -41,7 +41,7 @@ from typings import (
 MODEL_FT_DIR = Path(__file__).parent / "models" / "fine_tuned_model"
 
 # Путь к baseline модели (день 4)
-MODEL_BASELINE_PATH = Path(__file__).parent / "day4" / "baseline_model.pkl"
+MODEL_BASELINE_PATH = Path(__file__).parent / "models" / "baseline_model" / "model.pkl"
 
 # Настраиваем окружение до импорта transformers
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
@@ -56,20 +56,50 @@ RU_MODEL = "distilbert-base-multilingual-cased"
 
 
 def load_fine_tuned_model() -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
-    """Загружает fine-tuned модель и токенизатор."""
-    model = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
+    """Загружает fine-tuned модель и токенизатор.
+
+    Если модель не найдена на диске, обучает её (3 эпохи) и сохраняет.
+    """
+    if not MODEL_FT_DIR.exists():
+        print("Fine-tuned модель не найдена, обучаю...")
+        MODEL_FT_DIR.parent.mkdir(parents=True, exist_ok=True)
+        train_loader, val_loader, num_labels = build_sentiment_loaders(max_length=64)
+        model, optimizer, device = build_classifier(num_labels)
+        train_loop(model, train_loader, val_loader, optimizer, device, num_epochs=3)
+        tokenizer = get_tokenizer(EN_MODEL)
+        model.save_pretrained(MODEL_FT_DIR)
+        tokenizer.save_pretrained(MODEL_FT_DIR)
+        print(f"Модель сохранена: {MODEL_FT_DIR}")
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
+        model = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
     model.eval()
     return model, tokenizer
 
 
 def load_baseline_model() -> tuple[LogisticRegression, PreTrainedTokenizerBase, PreTrainedModel]:
-    """Загружает baseline модель, токенизатор и embedding модель."""
-    model = joblib.load(MODEL_BASELINE_PATH)
-    tokenizer = get_tokenizer(EN_MODEL)
-    embedding_model = AutoModel.from_pretrained(EN_MODEL)
-    embedding_model.eval()
-    return model, tokenizer, embedding_model
+    """Загружает baseline модель, токенизатор и embedding модель.
+
+    Если модель не найдена на диске, обучает её и сохраняет.
+    """
+    if not MODEL_BASELINE_PATH.exists():
+        print("Baseline модель не найдена, обучаю...")
+        MODEL_BASELINE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        train_texts, val_texts, train_labels, val_labels = load_sentiment_split()
+        tokenizer = get_tokenizer(EN_MODEL)
+        embedding_model = get_model(EN_MODEL)
+        embedding_model.eval()
+        x_train = get_embeddings(train_texts, tokenizer, embedding_model)
+        clf = LogisticRegression(max_iter=1000)
+        clf.fit(x_train, train_labels)
+        joblib.dump(clf, MODEL_BASELINE_PATH)
+        print(f"Модель сохранена: {MODEL_BASELINE_PATH}")
+    else:
+        clf = joblib.load(MODEL_BASELINE_PATH)
+        tokenizer = get_tokenizer(EN_MODEL)
+        embedding_model = AutoModel.from_pretrained(EN_MODEL)
+        embedding_model.eval()
+    return clf, tokenizer, embedding_model
 
 
 def predict_fine_tuned(

@@ -52,6 +52,7 @@ RESULTS_PATH.write_text(
 print(f"\nРезультаты сохранены: {RESULTS_PATH}")
 
 # 13. Сохранение модели для повторного использования
-MODEL_PATH = Path(__file__).parent / "baseline_model.pkl"
+MODEL_PATH = Path(__file__).parent.parent / "models" / "baseline_model" / "model.pkl"
+MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
 joblib.dump(clf, MODEL_PATH)
 print(f"Модель сохранена: {MODEL_PATH}")
