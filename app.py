@@ -26,6 +26,9 @@ def predict_sentiment(text: str) -> str:
         return "Пожалуйста, введите текст для анализа."
 
     inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
+    # Переносим входы на устройство модели (CPU или CUDA)
+    device = next(model.parameters()).device
+    inputs = {k: v.to(device) for k, v in inputs.items()}
 
     with torch.no_grad():
         outputs = model(**inputs)

@@ -130,6 +130,9 @@ def predict_fine_tuned(
 
     for text in texts:
         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=MAX_LENGTH)
+        # Переносим входы на устройство модели (CPU или CUDA)
+        device = next(model.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
 
         with torch.no_grad():
             outputs = model(**inputs)
