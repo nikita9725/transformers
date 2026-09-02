@@ -3,6 +3,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader
 
 from common import (
+    MAX_LENGTH,
     SentimentDataset,
     evaluate,
     get_embeddings,
@@ -33,7 +34,7 @@ f1_bl = f1_score(val_labels, y_pred_bl, average="macro")
 
 # Оценка fine-tuned модели
 print("Оценка fine-tuned модели (день 5)...")
-val_dataset = SentimentDataset(val_texts, val_labels, tokenizer_ft, max_length=64)
+val_dataset = SentimentDataset(val_texts, val_labels, tokenizer_ft, max_length=MAX_LENGTH)
 val_loader = DataLoader(val_dataset, batch_size=16)
 acc_ft, f1_ft = evaluate(model_ft, val_loader, device)
 

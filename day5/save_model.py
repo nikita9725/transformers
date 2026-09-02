@@ -2,6 +2,7 @@ from pathlib import Path
 
 from common import (
     EN_MODEL,
+    MAX_LENGTH,
     build_classifier,
     build_sentiment_loaders,
     get_tokenizer,
@@ -14,7 +15,6 @@ from common import (
 # самодостаточным, в config.json сохраняется архитектура головы (num_labels)
 
 NUM_EPOCHS = 3
-MAX_LENGTH = 64
 # Всё, что касается моделей, живёт в корне репозитория в папке models/
 MODEL_DIR = Path(__file__).parent.parent / "models" / "fine_tuned_model"
 # Результаты сохраняем в корне репозитория

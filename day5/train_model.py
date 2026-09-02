@@ -1,4 +1,4 @@
-from common import build_classifier, build_sentiment_loaders, train_loop
+from common import MAX_LENGTH, build_classifier, build_sentiment_loaders, train_loop
 
 # День 5, задача 7: обучение модели
 # Полный цикл из NUM_EPOCHS эпох: после каждой — оценка на валидации.
@@ -6,7 +6,6 @@ from common import build_classifier, build_sentiment_loaders, train_loop
 # дальше ожидаем плато без переобучения
 
 NUM_EPOCHS = 3
-MAX_LENGTH = 64
 
 # Данные и модель — конвейер задач 2-4
 train_loader, val_loader, num_labels = build_sentiment_loaders(max_length=MAX_LENGTH)
