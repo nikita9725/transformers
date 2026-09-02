@@ -54,6 +54,9 @@ disable_progress_bars()
 EN_MODEL = "distilbert-base-uncased"
 RU_MODEL = "distilbert-base-multilingual-cased"
 
+# Максимальная длина последовательности для классификации
+MAX_LENGTH = 64
+
 
 def load_fine_tuned_model() -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     """Загружает fine-tuned модель и токенизатор.
@@ -63,7 +66,7 @@ def load_fine_tuned_model() -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
     if not MODEL_FT_DIR.exists():
         print("Fine-tuned модель не найдена, обучаю...")
         MODEL_FT_DIR.parent.mkdir(parents=True, exist_ok=True)
-        train_loader, val_loader, num_labels = build_sentiment_loaders(max_length=64)
+        train_loader, val_loader, num_labels = build_sentiment_loaders(max_length=MAX_LENGTH)
         model, optimizer, device = build_classifier(num_labels)
         train_loop(model, train_loader, val_loader, optimizer, device, num_epochs=3)
         tokenizer = get_tokenizer(EN_MODEL)
@@ -126,7 +129,7 @@ def predict_fine_tuned(
     predictions: list[PredictionResult] = []
 
     for text in texts:
-        inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
+        inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=MAX_LENGTH)
 
         with torch.no_grad():
             outputs = model(**inputs)
@@ -295,7 +298,7 @@ class SentimentDataset(Dataset):
         texts: list[str],
         labels: list[int],
         tokenizer: PreTrainedTokenizerBase,
-        max_length: int = 128,
+        max_length: int = MAX_LENGTH,
     ) -> None:
         self.texts = texts
         self.labels = labels
@@ -403,7 +406,7 @@ def load_sentiment_split() -> TextSplit:
     return train_texts, val_texts, train_labels, val_labels
 
 
-def build_sentiment_loaders(max_length: int = 64, batch_size: int = 16) -> LoadersBundle:
+def build_sentiment_loaders(max_length: int = MAX_LENGTH, batch_size: int = 16) -> LoadersBundle:
     """DataLoader'ы для обучения сентимент-модели и число классов.
 
     Трейн-лоадер с shuffle, валидационный — детерминированный.

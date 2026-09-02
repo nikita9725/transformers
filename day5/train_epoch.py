@@ -3,7 +3,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader
 from transformers import PreTrainedModel
 
-from common import build_classifier, build_sentiment_loaders, train_epoch
+from common import MAX_LENGTH, build_classifier, build_sentiment_loaders, train_epoch
 
 # День 5, задача 5: функция обучения одной эпохи
 # Обучение идёт на CPU, поэтому последовательности укорочены до 64 токенов:
@@ -11,7 +11,6 @@ from common import build_classifier, build_sentiment_loaders, train_epoch
 # а время батча растёт с длиной последовательности
 
 EPOCHS = 1
-MAX_LENGTH = 64
 
 # Данные и модель — конвейер задач 2-4
 train_loader, val_loader, num_labels = build_sentiment_loaders(max_length=MAX_LENGTH)
