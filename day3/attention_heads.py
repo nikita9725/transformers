@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 
 import torch
 
@@ -12,6 +13,8 @@ from common import (
 # Задача 5: внимание разных голов одного слоя
 
 TEXT = "The amazing movie won many awards"
+ARTIFACTS_DIR = Path(__file__).parent / "artifacts"
+ARTIFACTS_DIR.mkdir(exist_ok=True)
 
 
 def print_head_summary(attn_layer: torch.Tensor, token_list: list[str]) -> None:
@@ -43,4 +46,5 @@ for layer in (0, 1):
     print(f"Слой {layer}: специализация 12 голов")
     print(f"{'=' * 60}")
     print_head_summary(attentions[layer][0], token_list)
-    visualize_attention_heads(tokens, attentions, tokenizer, layer=layer)
+    save_path = ARTIFACTS_DIR / f"attention_all_heads_layer{layer}.png"
+    visualize_attention_heads(tokens, attentions, tokenizer, layer=layer, save_path=str(save_path))

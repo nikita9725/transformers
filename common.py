@@ -554,6 +554,7 @@ def visualize_attention(
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
     head: int = 0,
+    save_path: str | None = None,
 ) -> None:
     """
     tokens: токенизированный текст
@@ -561,6 +562,7 @@ def visualize_attention(
     tokenizer: токенизатор для подписей осей
     layer: номер слоя для визуализации
     head: номер головы для визуализации
+    save_path: если указан, сохраняет график в файл (PNG)
     """
     # Получаем attention матрицу
     attn = attention[layer][0, head]  # [seq_len, seq_len]
@@ -589,6 +591,8 @@ def visualize_attention(
     plt.xlabel("Keys")
     plt.ylabel("Queries")
     plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()
 
 
@@ -597,12 +601,14 @@ def visualize_attention_heads(
     attention: Attentions,
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
+    save_path: str | None = None,
 ) -> None:
     """
     tokens: токенизированный текст
     attention: attention weights от модели (outputs.attentions)
     tokenizer: токенизатор для подписей осей
     layer: номер слоя, все головы которого рисуются на одной сетке
+    save_path: если указан, сохраняет график в файл (PNG)
     """
     # Матрицы всех голов выбранного слоя: [num_heads, seq_len, seq_len]
     attn_layer = attention[layer][0]
@@ -642,4 +648,6 @@ def visualize_attention_heads(
     mappable = heatmap_ax.collections[0] if heatmap_ax.collections else heatmap_ax.images[0]
     fig.colorbar(mappable, ax=axes.ravel().tolist(), shrink=0.6)
     fig.suptitle(f"Attention - Layer {layer}, all heads")
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()
