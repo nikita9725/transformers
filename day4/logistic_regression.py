@@ -4,7 +4,15 @@ import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score
 
-from common import EN_MODEL, get_embeddings, get_model, get_tokenizer, load_sentiment_split
+from common import (
+    EN_MODEL,
+    SEED,
+    get_embeddings,
+    get_model,
+    get_tokenizer,
+    load_sentiment_split,
+    set_seed,
+)
 
 # День 4, задача 3: Logistic Regression на CLS-эмбеддингах
 # Датасет: локальный датасет sentiment labelled sentences (amazon, imdb, yelp)
@@ -12,6 +20,8 @@ from common import EN_MODEL, get_embeddings, get_model, get_tokenizer, load_sent
 
 RESULTS_PATH = Path(__file__).parent / "baseline_results.txt"
 
+# Фиксируем seed для воспроизводимости
+set_seed(SEED)
 
 # 1-2. Загрузка датасета (уже разделён на train/val)
 train_texts, val_texts, train_labels, val_labels = load_sentiment_split()

@@ -1,5 +1,6 @@
 import csv
 import os
+import random
 from pathlib import Path
 from typing import cast
 
@@ -37,6 +38,26 @@ from typings import (
     TextSplit,
 )
 
+# Фиксированный seed для воспроизводимости
+SEED = 42
+
+
+def set_seed(seed: int = SEED) -> None:
+    """Фиксирует random seed для воспроизводимости результатов.
+
+    Влияет на:
+    - random (Python stdlib)
+    - numpy
+    - torch (CPU и CUDA)
+    - DataLoader generator (shuffle)
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 # Путь к fine-tuned модели (день 5)
 MODEL_FT_DIR = Path(__file__).parent / "models" / "fine_tuned_model"
 
@@ -59,23 +80,19 @@ MAX_LENGTH = 64
 
 
 def load_fine_tuned_model() -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
-    """Загружает fine-tuned модель и токенизатор.
+    """Загружает fine-tuned модель и токенизатор из models/fine_tuned_model/.
 
-    Если модель не найдена на диске, обучает её (3 эпохи) и сохраняет.
+    Raises:
+        FileNotFoundError: если модель не найдена — запустите
+            `uv run python -m day5.save_model` для обучения.
     """
     if not MODEL_FT_DIR.exists():
-        print("Fine-tuned модель не найдена, обучаю...")
-        MODEL_FT_DIR.parent.mkdir(parents=True, exist_ok=True)
-        train_loader, val_loader, num_labels = build_sentiment_loaders(max_length=MAX_LENGTH)
-        model, optimizer, device = build_classifier(num_labels)
-        train_loop(model, train_loader, val_loader, optimizer, device, num_epochs=3)
-        tokenizer = get_tokenizer(EN_MODEL)
-        model.save_pretrained(MODEL_FT_DIR)
-        tokenizer.save_pretrained(MODEL_FT_DIR)
-        print(f"Модель сохранена: {MODEL_FT_DIR}")
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
-        model = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
+        raise FileNotFoundError(
+            f"Fine-tuned модель не найдена: {MODEL_FT_DIR}\n"
+            "Обучите её: uv run python -m day5.save_model"
+        )
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_FT_DIR)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_FT_DIR)
     model.eval()
     return model, tokenizer
 
@@ -83,25 +100,19 @@ def load_fine_tuned_model() -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
 def load_baseline_model() -> tuple[LogisticRegression, PreTrainedTokenizerBase, PreTrainedModel]:
     """Загружает baseline модель, токенизатор и embedding модель.
 
-    Если модель не найдена на диске, обучает её и сохраняет.
+    Raises:
+        FileNotFoundError: если модель не найдена — запустите
+            `uv run python -m day4.logistic_regression` для обучения.
     """
     if not MODEL_BASELINE_PATH.exists():
-        print("Baseline модель не найдена, обучаю...")
-        MODEL_BASELINE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        train_texts, val_texts, train_labels, val_labels = load_sentiment_split()
-        tokenizer = get_tokenizer(EN_MODEL)
-        embedding_model = get_model(EN_MODEL)
-        embedding_model.eval()
-        x_train = get_embeddings(train_texts, tokenizer, embedding_model)
-        clf = LogisticRegression(max_iter=1000)
-        clf.fit(x_train, train_labels)
-        joblib.dump(clf, MODEL_BASELINE_PATH)
-        print(f"Модель сохранена: {MODEL_BASELINE_PATH}")
-    else:
-        clf = joblib.load(MODEL_BASELINE_PATH)
-        tokenizer = get_tokenizer(EN_MODEL)
-        embedding_model = AutoModel.from_pretrained(EN_MODEL)
-        embedding_model.eval()
+        raise FileNotFoundError(
+            f"Baseline модель не найдена: {MODEL_BASELINE_PATH}\n"
+            "Обучите её: uv run python -m day4.logistic_regression"
+        )
+    clf = joblib.load(MODEL_BASELINE_PATH)
+    tokenizer = get_tokenizer(EN_MODEL)
+    embedding_model = AutoModel.from_pretrained(EN_MODEL)
+    embedding_model.eval()
     return clf, tokenizer, embedding_model
 
 
@@ -420,7 +431,11 @@ def build_sentiment_loaders(max_length: int = MAX_LENGTH, batch_size: int = 16) 
     train_dataset = SentimentDataset(train_texts, train_labels, tokenizer, max_length=max_length)
     val_dataset = SentimentDataset(val_texts, val_labels, tokenizer, max_length=max_length)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Фиксированный generator для воспроизводимого shuffle
+    generator = torch.Generator().manual_seed(SEED)
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True, generator=generator
+    )
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
     num_labels = len(set(train_labels) | set(val_labels))
     return train_loader, val_loader, num_labels
@@ -554,6 +569,7 @@ def visualize_attention(
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
     head: int = 0,
+    save_path: str | None = None,
 ) -> None:
     """
     tokens: токенизированный текст
@@ -561,6 +577,7 @@ def visualize_attention(
     tokenizer: токенизатор для подписей осей
     layer: номер слоя для визуализации
     head: номер головы для визуализации
+    save_path: если указан, сохраняет график в файл (PNG)
     """
     # Получаем attention матрицу
     attn = attention[layer][0, head]  # [seq_len, seq_len]
@@ -589,6 +606,8 @@ def visualize_attention(
     plt.xlabel("Keys")
     plt.ylabel("Queries")
     plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()
 
 
@@ -597,12 +616,14 @@ def visualize_attention_heads(
     attention: Attentions,
     tokenizer: PreTrainedTokenizerBase,
     layer: int = 0,
+    save_path: str | None = None,
 ) -> None:
     """
     tokens: токенизированный текст
     attention: attention weights от модели (outputs.attentions)
     tokenizer: токенизатор для подписей осей
     layer: номер слоя, все головы которого рисуются на одной сетке
+    save_path: если указан, сохраняет график в файл (PNG)
     """
     # Матрицы всех голов выбранного слоя: [num_heads, seq_len, seq_len]
     attn_layer = attention[layer][0]
@@ -642,4 +663,6 @@ def visualize_attention_heads(
     mappable = heatmap_ax.collections[0] if heatmap_ax.collections else heatmap_ax.images[0]
     fig.colorbar(mappable, ax=axes.ravel().tolist(), shrink=0.6)
     fig.suptitle(f"Attention - Layer {layer}, all heads")
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()

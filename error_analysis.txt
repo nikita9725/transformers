@@ -1,31 +1,31 @@
 === АНАЛИЗ ОШИБОК ===
 
 Всего примеров: 600
-Всего ошибок: 53
-False Positives: 41
-False Negatives: 12
-Общая точность: 0.9117 (91.17%)
+Всего ошибок: 38
+False Positives: 20
+False Negatives: 18
+Общая точность: 0.9367 (93.67%)
 
 === АНАЛИЗ ДЛИНЫ ТЕКСТОВ ===
-Средняя длина ошибочных текстов: 75 символов
+Средняя длина ошибочных текстов: 72 символов
 Средняя длина всех текстов: 65 символов
-Разница: +10 символов
+Разница: +7 символов
 
 === ПРИМЕРЫ FALSE POSITIVES ===
 
 Текст: A FLY was in my apple juice.. A FLY!!!!!!!!
 Истинный: 0, Предсказан: 1
 
-Текст: The food was barely lukewarm, so it must have been sitting waiting for the server to bring it out to us.
-Истинный: 0, Предсказан: 1
-
-Текст: This short film certainly pulls no punches.  
-Истинный: 0, Предсказан: 1
-
-Текст: I came back today since they relocated and still not impressed.
-Истинный: 0, Предсказан: 1
-
 Текст: seems like a good quick place to grab a bite of some familiar pub food, but do yourself a favor and look elsewhere.
+Истинный: 0, Предсказан: 1
+
+Текст: At least think to refill my water before I struggle to wave you over for 10 minutes.
+Истинный: 0, Предсказан: 1
+
+Текст: The Heart Attack Grill in downtown Vegas is an absolutely flat-lined excuse for a restaurant.
+Истинный: 0, Предсказан: 1
+
+Текст: If you look for authentic Thai food, go else where.
 Истинный: 0, Предсказан: 1
 
 
@@ -34,27 +34,27 @@ False Negatives: 12
 Текст: Someone shouldve invented this sooner.
 Истинный: 1, Предсказан: 0
 
+Текст: You cant go wrong with any of the food here.
+Истинный: 1, Предсказан: 0
+
+Текст: It is an insane game.  
+Истинный: 1, Предсказан: 0
+
 Текст: It plays louder than any other speaker of this size; the price is so low that most would think the quality is lacking, however, it's not.
 Истинный: 1, Предсказан: 0
 
-Текст: Couldn't ask for a more satisfying meal.
-Истинный: 1, Предсказан: 0
-
-Текст: I'd advise anyone to go and see it.  
-Истинный: 1, Предсказан: 0
-
-Текст: I'd love to go back.
+Текст: Never had anything to complain about here.
 Истинный: 1, Предсказан: 0
 
 
 === НАБЛЮДЕНИЯ ===
 Паттерны ошибок:
-1. False Positives (41 случаев): модель ошибочно считает негативные отзывы позитивными
-2. False Negatives (12 случаев): модель пропускает позитивные отзывы
+1. False Positives (20 случаев): модель ошибочно считает негативные отзывы позитивными
+2. False Negatives (18 случаев): модель пропускает позитивные отзывы
 
 Средняя длина текстов:
-   - FP: 77 символов
-   - FN: 66 символов
+   - FP: 82 символов
+   - FN: 61 символов
 
 Вывод:
-   Модель лучше распознаёт позитив (12 FN), но ошибочно помечает больше негатива как позитив (41 FP)
+   Модель лучше распознаёт позитив (18 FN), но ошибочно помечает больше негатива как позитив (20 FP)
