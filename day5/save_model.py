@@ -3,9 +3,11 @@ from pathlib import Path
 from common import (
     EN_MODEL,
     MAX_LENGTH,
+    SEED,
     build_classifier,
     build_sentiment_loaders,
     get_tokenizer,
+    set_seed,
     train_loop,
 )
 
@@ -19,6 +21,9 @@ NUM_EPOCHS = 3
 MODEL_DIR = Path(__file__).parent.parent / "models" / "fine_tuned_model"
 # Результаты сохраняем в корне репозитория
 RESULTS_PATH = Path(__file__).parent.parent / "fine_tuned_results.txt"
+
+# Фиксируем seed для воспроизводимости
+set_seed(SEED)
 
 # Данные и модель — конвейер задач 2-4
 train_loader, val_loader, num_labels = build_sentiment_loaders(max_length=MAX_LENGTH)
