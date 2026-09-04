@@ -76,7 +76,7 @@ EN_MODEL = "distilbert-base-uncased"
 RU_MODEL = "distilbert-base-multilingual-cased"
 
 # Максимальная длина последовательности для классификации
-MAX_LENGTH = 64
+MAX_LENGTH = 128
 
 
 def load_fine_tuned_model() -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
