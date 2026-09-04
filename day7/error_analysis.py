@@ -55,7 +55,8 @@ if len(fp) > 0:
     print("=== Примеры False Positives (предсказано POSITIVE, было NEGATIVE) ===")
     print("=" * 80)
     for idx, row in fp.head(5).iterrows():
-        text_preview = row["text"][:100] + "..." if len(row["text"]) > 100 else row["text"]
+        text = row["text"].strip()
+        text_preview = text[:100] + "..." if len(text) > 100 else text
         print(f"\nТекст: {text_preview}")
         print(f"Истинный класс: {row['true_label']}, Предсказан: {row['pred_label']}")
 
@@ -65,7 +66,8 @@ if len(fn) > 0:
     print("=== Примеры False Negatives (предсказано NEGATIVE, было POSITIVE) ===")
     print("=" * 80)
     for idx, row in fn.head(5).iterrows():
-        text_preview = row["text"][:100] + "..." if len(row["text"]) > 100 else row["text"]
+        text = row["text"].strip()
+        text_preview = text[:100] + "..." if len(text) > 100 else text
         print(f"\nТекст: {text_preview}")
         print(f"Истинный класс: {row['true_label']}, Предсказан: {row['pred_label']}")
 
@@ -104,12 +106,12 @@ with open(results_path, "w", encoding="utf-8") as f:
 
     f.write("=== ПРИМЕРЫ FALSE POSITIVES ===\n")
     for idx, row in fp.head(5).iterrows():
-        f.write(f"\nТекст: {row['text']}\n")
+        f.write(f"\nТекст: {row['text'].strip()}\n")
         f.write(f"Истинный: {row['true_label']}, Предсказан: {row['pred_label']}\n")
 
     f.write("\n\n=== ПРИМЕРЫ FALSE NEGATIVES ===\n")
     for idx, row in fn.head(5).iterrows():
-        f.write(f"\nТекст: {row['text']}\n")
+        f.write(f"\nТекст: {row['text'].strip()}\n")
         f.write(f"Истинный: {row['true_label']}, Предсказан: {row['pred_label']}\n")
 
     f.write("\n\n=== НАБЛЮДЕНИЯ ===\n")
